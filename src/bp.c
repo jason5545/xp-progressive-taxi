@@ -1089,7 +1089,7 @@ bp_init(void)
 	} else {
 		drs.pbrake_is_custom = B_TRUE;
 	}
-	fdr_find(&drs.pbrake_rat, "sim/cockpit2/controls/parking_brake_ratio");
+	fdr_find(&drs.pbrake_rat, "sim/cockpit2/controls/wheel_brake_ratio");
 	fdr_find(&drs.rot_force_M, "sim/flightmodel/forces/M_plug_acf");
 	fdr_find(&drs.rot_force_N, "sim/flightmodel/forces/N_plug_acf");
 	fdr_find(&drs.axial_force, "sim/flightmodel/forces/faxil_plug_acf");
@@ -1115,7 +1115,7 @@ bp_init(void)
 	    "sim/flightmodel2/gear/tire_rotation_speed_rad_sec");
 	fdr_find(&drs.mtow, "sim/aircraft/weight/acf_m_max");
 	fdr_find(&drs.leg_len, "sim/aircraft/parts/acf_gear_leglen");
-	fdr_find(&drs.tirrad, "sim/aircraft/parts/acf_gear_tirrad");
+	fdr_find(&drs.tirrad, "sim/flightmodel2/gear/tire_radius_mtrs");
 	fdr_find(&drs.nw_steerdeg1, "sim/aircraft/gear/acf_nw_steerdeg1");
 	fdr_find(&drs.nw_steerdeg2, "sim/aircraft/gear/acf_nw_steerdeg2");
 	fdr_find(&drs.tire_steer_cmd,
@@ -1134,7 +1134,7 @@ bp_init(void)
 	fdr_find(&drs.num_engns, "sim/aircraft/engine/acf_num_engines");
 	fdr_find(&drs.engn_running, "sim/flightmodel/engine/ENGN_running");
 	fdr_find(&drs.acf_livery_path, "sim/aircraft/view/acf_livery_path");
-	fdr_find(&drs.rwy_friction, "sim/weather/runway_friction");
+	fdr_find(&drs.rwy_friction, "sim/weather/region/runway_friction");
 
 	fdr_find(&drs.landing_lights_on,
 	    "sim/cockpit/electrical/landing_lights_on");

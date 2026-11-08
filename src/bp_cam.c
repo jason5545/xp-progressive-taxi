@@ -1052,7 +1052,7 @@ find_drs(void)
 	fdr_find(&drs.hdg, "sim/flightmodel/position/psi");
 	fdr_find(&drs.tire_z, "sim/flightmodel/parts/tire_z_no_deflection");
 	fdr_find(&drs.tire_x, "sim/flightmodel/parts/tire_x_no_deflection");
-	fdr_find(&drs.tirrad, "sim/aircraft/parts/acf_gear_tirrad");
+	fdr_find(&drs.tirrad, "sim/flightmodel2/gear/tire_radius_mtrs");
 
 	fdr_find(&drs.mtow, "sim/aircraft/weight/acf_m_max");
 
