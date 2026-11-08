@@ -179,6 +179,15 @@ void ptx_plan(ptx_graph_t *g, vect2_t main_pos, vect2_t ref_pos,
     const ptx_opts_t *opts, ptx_result_t *results, ptx_diag_t *diag);
 void ptx_results_free(ptx_result_t *results, int n);
 
+/*
+ * Taxiway names along the route, consecutive duplicates merged, runway
+ * edges as "RWY 05L/23R", unnamed edges skipped. Returns the count.
+ */
+int ptx_route_names(const ptx_graph_t *g, const ptx_result_t *r,
+    char names[][80], int max);
+/* Name of the taxiway that leads onto the runway ("" if unnamed). */
+const char *ptx_route_entry_name(const ptx_graph_t *g, const ptx_result_t *r);
+
 const char *ptx_status_str(ptx_status_t s);
 const char *ptx_kind_str(ptx_kind_t k);
 const char *ptx_tier_str(ptx_tier_t t);

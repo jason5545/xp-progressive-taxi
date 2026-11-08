@@ -121,6 +121,12 @@ copy_str(char *dst, size_t cap, const char *src)
 ptx_apt_t *
 ptx_apt_load(const char *path, const char *icao)
 {
+	return (ptx_apt_load_at(path, 0, icao));
+}
+
+ptx_apt_t *
+ptx_apt_load_at(const char *path, long offset, const char *icao)
+{
 	FILE *fp = fopen(path, "r");
 	char *line = NULL;
 	size_t linecap = 0;
@@ -131,6 +137,10 @@ ptx_apt_load(const char *path, const char *icao)
 
 	if (fp == NULL)
 		return (NULL);
+	if (offset > 0 && fseek(fp, offset, SEEK_SET) != 0) {
+		fclose(fp);
+		return (NULL);
+	}
 	apt = calloc(1, sizeof (*apt));
 
 	while (getline(&line, &linecap, fp) > 0) {

@@ -43,6 +43,7 @@
 #include "cab_view.h"
 #include "cfg.h"
 #include "ff_a320_intf.h"
+#include "ptx_xp.h"
 #include "msg.h"
 #include "tug.h"
 #include "xplane.h"
@@ -620,6 +621,7 @@ XPluginStart(char *name, char *sig, char *desc)
 	recreate_routes = XPLMCreateCommand(
 	    "ProgressiveTaxi/recreate_scenery_routes",
 	    _("Recreate scenery routes from WED files."));
+	ptx_xp_start();
 
 	bp_boot_init();
 
@@ -755,6 +757,8 @@ bp_priv_enable(void)
 	    "Progressive Taxi", NULL, 1);
 	root_menu = XPLMCreateMenu("Progressive Taxi", XPLMFindPluginsMenu(),
 	    plugins_menu_item, menu_cb, NULL);
+	/* the automatic pushback goes first: it's the main feature */
+	ptx_xp_enable(root_menu);
 
 	start_pb_plan_menu_item = XPLMAppendMenuItem(root_menu,
 	    _("Pre-plan pushback"), start_cam, 1);
@@ -818,6 +822,7 @@ bp_priv_disable(void)
 	XPLMUnregisterCommandHandler(recreate_routes, recreate_routes_handler,
 	    1, NULL);
 
+	ptx_xp_disable();
 	bp_fini();
 	tug_glob_fini();
 	cab_view_fini();

@@ -27,7 +27,12 @@
  *   plan_cli menu --apt FILE [--icao XXXX] --stand NAME
  *                 [--wheelbase M --max-steer DEG --class C | --fleet FLEET]
  *                 [--full-length] [--stand-ref nose|main]
- *       The runway menu for one stand, as the plugin will show it.
+ *                 [--wind DIR KT] [--png menu.png]
+ *       The runway menu for one stand; --png renders the plugin's menu.
+ *
+ *   plan_cli scenery --xpdir XPDIR --cache DIR ICAO [ICAO ...]
+ *       Which apt.dat X-Plane uses for each airport (scenery_packs.ini
+ *       order), and how long finding/indexing/parsing takes.
  *
  * FLEET is the text file written by pbplan.py --fleet-out:
  *   mode class|b738
@@ -43,6 +48,9 @@
 #include <acfutils/geom.h>
 
 #include "planner/ptx_plan.h"
+#include "planner/ptx_scenery.h"
+#include "ptx_menu.h"
+#include "ptx_ui_render.h"
 
 typedef struct {
 	bool	have;
@@ -159,29 +167,6 @@ stand_cls(const ptx_stand_t *s)
 	if (strstr(s->actypes, "turboprops") != NULL)
 		return ('B');
 	return ('A');
-}
-
-/* route instruction names, like the prototype's describe_route() */
-static int
-route_names(const ptx_graph_t *g, const ptx_result_t *r, char names[][80],
-    int max)
-{
-	int n = 0;
-	for (int i = 0; i < r->n_route && n < max; i++) {
-		int e;
-		char nm[80];
-		ptx_dedge(g, r->route[i], &e, NULL, NULL);
-		if (ptx_edge_is_runway(g, e))
-			snprintf(nm, sizeof (nm), "RWY %s", ptx_edge_name(g, e));
-		else
-			snprintf(nm, sizeof (nm), "%s", ptx_edge_name(g, e));
-		if (nm[0] == '\0')
-			continue;
-		if (n > 0 && strcmp(names[n - 1], nm) == 0)
-			continue;
-		strcpy(names[n++], nm);
-	}
-	return (n);
 }
 
 static int
@@ -320,7 +305,7 @@ cmd_all(int argc, char **argv)
 			}
 			{
 				char names[64][80];
-				int nn = route_names(g, r, names, 64);
+				int nn = ptx_route_names(g, r, names, 64);
 				fprintf(out, ",\"ok\":true,\"a\":%d,\"b\":%d,"
 				    "\"sgn\":%d,\"x\":", ptx_edge_file_a(g, r->edge),
 				    ptx_edge_file_b(g, r->edge), r->sgn);
@@ -403,8 +388,8 @@ static int
 cmd_menu(int argc, char **argv)
 {
 	const char *apt_path = NULL, *icao = NULL, *stand = NULL;
-	const char *fleet_path = NULL;
-	double wb = NAN, ms = NAN;
+	const char *fleet_path = NULL, *png = NULL;
+	double wb = NAN, ms = NAN, wind_dir = NAN, wind_kt = 0;
 	char cls = 0;
 	bool full = false, main_ref = false;
 	ptx_opts_t opts;
@@ -438,7 +423,12 @@ cmd_menu(int argc, char **argv)
 			full = true;
 		else if (strcmp(argv[i], "--stand-ref") == 0 && i + 1 < argc)
 			main_ref = (strcmp(argv[++i], "main") == 0);
-		else
+		else if (strcmp(argv[i], "--png") == 0 && i + 1 < argc)
+			png = argv[++i];
+		else if (strcmp(argv[i], "--wind") == 0 && i + 2 < argc) {
+			wind_dir = atof(argv[++i]);
+			wind_kt = atof(argv[++i]);
+		} else
 			die("unknown argument to 'menu'");
 	}
 	if (apt_path == NULL || stand == NULL)
@@ -504,7 +494,7 @@ cmd_menu(int argc, char **argv)
 			    "後方沒有可停的滑行道" : "跑道不在滑行網路裡");
 			continue;
 		}
-		nn = route_names(g, r, names, 64);
+		nn = ptx_route_names(g, r, names, 64);
 		printf("  %-4s  推完機頭 %03.0f°，停在 %s，後推 %.0f m%s%s；"
 		    "滑行 %.0f m，入口少 %.0f m\n", ptx_rend_name(g, ri),
 		    r->end_hdg, ptx_edge_name(g, r->edge)[0] ?
@@ -518,6 +508,39 @@ cmd_menu(int argc, char **argv)
 		printf(" → hold short %s\n", ptx_rend_name(g, ri));
 	}
 	printf("計算時間（含建圖）：%.2f ms\n", t1 - t0);
+	if (png != NULL) {
+		ptx_ui_fonts_t *fonts = ptx_ui_fonts_new();
+		ptx_menu_ctx_t ctx;
+		ptx_ui_model_t model;
+		ptx_ui_layout_t lay;
+		int order[PTX_UI_MAX_ROWS + 64];
+		cairo_surface_t *surf;
+		cairo_t *cr;
+
+		memset(&ctx, 0, sizeof (ctx));
+		ctx.icao = apt->icao;
+		ctx.stand_name = st->name;
+		ctx.kind = kind;
+		ctx.have_wind = !isnan(wind_dir);
+		ctx.wind_dir = wind_dir;
+		ctx.wind_kt = wind_kt;
+		ctx.ac_cls = cls;
+		ctx.full_length = full;
+		ctx.cjk = ptx_ui_fonts_cjk(fonts);
+		ptx_menu_build(g, res, &ctx, &model, order);
+		ptx_ui_layout(&model, &lay);
+		surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, lay.w,
+		    lay.h);
+		cr = cairo_create(surf);
+		ptx_ui_render(cr, &model, &lay, fonts);
+		cairo_destroy(cr);
+		if (cairo_surface_write_to_png(surf, png) != CAIRO_STATUS_SUCCESS)
+			die("can't write png");
+		cairo_surface_destroy(surf);
+		printf("選單圖：%s（%dx%d，字型 %s）\n", png, lay.w, lay.h,
+		    ptx_ui_fonts_desc(fonts));
+		ptx_ui_fonts_free(fonts);
+	}
 	ptx_results_free(res, ptx_n_rends(g));
 	free(res);
 	ptx_graph_free(g);
@@ -525,9 +548,45 @@ cmd_menu(int argc, char **argv)
 	return (0);
 }
 
+static int
+cmd_scenery(int argc, char **argv)
+{
+	const char *xpdir = NULL, *cache = NULL;
+	int rc = 0;
+
+	for (int i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "--xpdir") == 0 && i + 1 < argc) {
+			xpdir = argv[++i];
+		} else if (strcmp(argv[i], "--cache") == 0 && i + 1 < argc) {
+			cache = argv[++i];
+		} else {
+			ptx_scenery_info_t info;
+			ptx_apt_t *apt;
+			if (xpdir == NULL || cache == NULL)
+				die("'scenery' needs --xpdir and --cache before ICAOs");
+			apt = ptx_scenery_load(xpdir, cache, argv[i], &info);
+			if (apt == NULL) {
+				printf("%s：找不到\n", argv[i]);
+				rc = 1;
+				continue;
+			}
+			printf("%s：%s\n  檔案 %s（位移 %ld）\n  找 %.1f ms%s、"
+			    "解析 %.1f ms；%d 跑道、%d 停機位、%d 節點、%d 邊\n",
+			    argv[i], apt->name, info.apt_path, info.offset,
+			    info.ms_find, info.index_built ? "（含建索引）" : "",
+			    info.ms_load, apt->n_rwys, apt->n_stands,
+			    apt->n_nodes, apt->n_edges);
+			ptx_apt_free(apt);
+		}
+	}
+	return (rc);
+}
+
 int
 main(int argc, char **argv)
 {
+	if (argc >= 2 && strcmp(argv[1], "scenery") == 0)
+		return (cmd_scenery(argc - 2, argv + 2));
 	if (argc >= 2 && strcmp(argv[1], "all") == 0)
 		return (cmd_all(argc - 2, argv + 2));
 	if (argc >= 2 && strcmp(argv[1], "menu") == 0)

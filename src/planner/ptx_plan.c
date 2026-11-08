@@ -27,6 +27,7 @@
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -1742,4 +1743,33 @@ ptx_tier_str(ptx_tier_t t)
 		return ("suspect");
 	}
 	return ("?");
+}
+
+int
+ptx_route_names(const ptx_graph_t *g, const ptx_result_t *r,
+    char names[][80], int max)
+{
+	int n = 0;
+	for (int i = 0; i < r->n_route && n < max; i++) {
+		const gedge_t *e = &g->edges[g->de[r->route[i]].eid];
+		char nm[80];
+		if (e->runway)
+			snprintf(nm, sizeof (nm), "RWY %s", e->src->name);
+		else
+			snprintf(nm, sizeof (nm), "%s", e->src->name);
+		if (nm[0] == '\0')
+			continue;
+		if (n > 0 && strcmp(names[n - 1], nm) == 0)
+			continue;
+		strcpy(names[n++], nm);
+	}
+	return (n);
+}
+
+const char *
+ptx_route_entry_name(const ptx_graph_t *g, const ptx_result_t *r)
+{
+	if (r->n_route == 0)
+		return ("");
+	return (g->edges[g->de[r->route[r->n_route - 1]].eid].src->name);
 }

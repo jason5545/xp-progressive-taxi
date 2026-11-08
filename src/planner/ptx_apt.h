@@ -104,6 +104,8 @@ typedef struct {
  * file can't be read or the airport isn't in it.
  */
 ptx_apt_t *ptx_apt_load(const char *path, const char *icao);
+/* Same, starting at a byte offset (an airport header row). */
+ptx_apt_t *ptx_apt_load_at(const char *path, long offset, const char *icao);
 void ptx_apt_free(ptx_apt_t *apt);
 
 /* "01R" -> "1R", "05" -> "5", upper-case. */
