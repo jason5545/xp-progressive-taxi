@@ -1,3 +1,15 @@
+# xp-progressive-taxi (ProgressiveTaxi)
+
+This is a fork of BetterPushback (archived upstream) that adds one-click
+automatic pushback planning (pick a runway, get pushed onto the right
+taxiway facing the right way) and progressive taxi guidance. It installs as
+`plugins/ProgressiveTaxi/` with its own signature, commands (`ProgressiveTaxi/*`)
+and datarefs (`ptaxi/*`), so it can coexist with the original BetterPushback.
+Build with `tools/build-mac.sh`; see `AGENTS.md` for build, install and test
+notes. The original BetterPushback README follows.
+
+---
+
 # !!!! IMPORTANT !!!!
 DO NOT download BetterPushback using the green "Clone or Download" button
 on the main repository page. Use the
