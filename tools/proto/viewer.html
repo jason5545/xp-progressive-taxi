@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>後推終點原型</title>
+<style>
+:root{--bg:#f6f5f2;--fg:#1d1d1f;--mut:#6b6b70;--panel:#fff;--line:#d8d6d0;--tw:#9a9a9a;--rw:#3a3a3a;--pb:#e07a00;--end:#7b3fb5;--ok:#1f8a4c;--bad:#c62828;--fwd:#2f6fc0;--rt:#00a3b5;--hs:#d81b60}
+@media (prefers-color-scheme:dark){:root{--bg:#141416;--fg:#ececef;--mut:#9a9aa2;--panel:#1d1d21;--line:#34343a;--tw:#6d6d73;--rw:#9d9da5;--pb:#ffa040;--end:#c79bff;--ok:#4cc98a;--bad:#ff6b6b;--fwd:#6aa7ff;--rt:#3fd8e8;--hs:#ff5c9a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,"PingFang TC","Noto Sans TC",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0 0 6px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--mut);font-size:13px}
+.stats b{color:var(--fg);font-weight:600}
+.bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;align-items:center;border-bottom:1px solid var(--line)}
+.bar button{min-height:40px;min-width:56px;padding:6px 12px;font-size:15px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;cursor:pointer}
+.bar button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.bar label{color:var(--mut);margin-left:8px}
+main{display:grid;grid-template-columns:1fr 380px;height:calc(100vh - 150px);min-height:420px}
+@media (max-width:900px){main{grid-template-columns:1fr;height:auto}#map{height:70vh}}
+#map{width:100%;height:100%;background:var(--bg);touch-action:none;cursor:grab}
+aside{border-left:1px solid var(--line);padding:12px 14px;overflow:auto;background:var(--panel)}
+aside h2{font-size:16px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+td,th{border-bottom:1px solid var(--line);padding:4px 4px;text-align:left;vertical-align:top}
+tr.sel td{background:color-mix(in srgb,var(--rt) 18%,transparent)}
+.mut{color:var(--mut)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mut)}
+.sw{display:inline-block;width:14px;height:4px;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="ttl"></h1>
+  <div class="stats" id="stats"></div>
+</header>
+<div class="bar" id="bar"></div>
+<main>
+  <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+  <aside id="side">
+    <h2>點停機位看細節</h2>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--pb)"></span>後推路徑</span>
+      <span><span class="sw" style="background:var(--end)"></span>推完後機頭方向</span>
+      <span><span class="sw" style="background:var(--rt)"></span>滑行路線</span>
+      <span><span class="sw" style="background:var(--hs)"></span>hold short</span>
+      <span><span class="sw" style="background:var(--ok)"></span>可行</span>
+      <span><span class="sw" style="background:var(--bad)"></span>找不到</span>
+      <span><span class="sw" style="background:var(--fwd)"></span>面向滑行道（不用推）</span>
+    </div>
+    <p class="mut">滾輪縮放、拖曳平移。灰線是滑行道（虛線＝單向、細點線＝停機位 lead-in），深色是跑道。</p>
+  </aside>
+</main>
+<script>
+const D = /*__DATA__*/null;
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("map");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+document.getElementById("ttl").textContent = D.title + "（" + D.stats.stands_total + " 個停機位）";
+const S = D.stats;
+const kv = [["需後推", S.pushback_stands], ["停機位×跑道端", S.pairs], ["可行", S.pairs_ok + "（" + (100*S.pairs_ok/Math.max(1,S.pairs)).toFixed(1) + "%）"],
+  ["後推長度 m", S.pb_len], ["鼻輪離中線 m", S.off_nose], ["第一個轉彎 >90°", S.first_turn_gt90], ["停機位方向隨跑道而變", S.stands_dir_depends_on_rwy], ["品質（組）", Object.entries(S.tier).map(([k, n]) => ({standard: "標準", unusual: "少見", suspect: "可疑"}[k] + " " + n)).join("、")]];
+document.getElementById("stats").innerHTML = kv.map(([k,v]) => `<span>${k}：<b>${v}</b></span>`).join("");
+let cur = D.rends[0], selStand = null;
+const bar = document.getElementById("bar");
+bar.insertAdjacentHTML("beforeend", '<span class="mut">跑道端：</span>');
+D.rends.forEach(r => { const b = document.createElement("button"); b.textContent = r; b.onclick = () => { cur = r; draw(); }; bar.appendChild(b); });
+bar.insertAdjacentHTML("beforeend", '<label><input type="checkbox" id="onlybad"> 只看失敗</label>');
+document.getElementById("onlybad").onchange = draw;
+
+// bounds
+let xs = [], ys = [];
+D.edges.forEach(e => { xs.push(e[0][0], e[1][0]); ys.push(e[0][1], e[1][1]); });
+D.stands.forEach(s => { xs.push(s.p[0]); ys.push(s.p[1]); });
+D.runways.forEach(r => r.forEach(p => { xs.push(p[0]); ys.push(p[1]); }));
+let x0 = Math.min(...xs) - 50, x1 = Math.max(...xs) + 50, y0 = -Math.max(...ys) - 50, y1 = -Math.min(...ys) + 50;
+let vb = [x0, y0, x1 - x0, y1 - y0];
+const setVB = () => svg.setAttribute("viewBox", vb.join(" "));
+setVB();
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; }
+const P = p => p[0] + "," + (-p[1]);
+function tri(p, hdg, size, fill, parent) {
+  const r = hdg * Math.PI / 180, dx = Math.sin(r), dy = Math.cos(r);
+  const tip = [p[0] + dx * size, p[1] + dy * size];
+  const l = [p[0] - dx * size * .6 - dy * size * .5, p[1] - dy * size * .6 + dx * size * .5];
+  const rr = [p[0] - dx * size * .6 + dy * size * .5, p[1] - dy * size * .6 - dx * size * .5];
+  return el("polygon", {points: [tip, l, rr].map(P).join(" "), fill}, parent);
+}
+let base = el("g", {}), dyn = el("g", {}), top_ = el("g", {});
+D.runways.forEach(r => el("polygon", {points: r.map(P).join(" "), fill: css("--rw"), opacity: .55}, base));
+D.rlabels.forEach(([n, p]) => { const t = el("text", {x: p[0], y: -p[1], "font-size": 28, fill: css("--fg"), "text-anchor": "middle"}, base); t.textContent = n; });
+D.edges.forEach(e => {
+  const a = {x1: e[0][0], y1: -e[0][1], x2: e[1][0], y2: -e[1][1], stroke: e[2] === "r" ? css("--rw") : css("--tw"), "stroke-width": e[2] === "r" ? 2 : 2.2, "stroke-linecap": "round"};
+  if (e[5]) a["stroke-dasharray"] = "6 4";
+  if (e[6]) { a["stroke-dasharray"] = "1 3"; a["stroke-width"] = 1.2; }
+  const l = el("line", a, base);
+  const t = el("title", {}, l); t.textContent = (e[4] || "(無名)") + (e[3] ? " 寬度等級 " + e[3] : "") + (e[5] ? " 單向" : "") + (e[7] ? " active zone" : "");
+});
+function draw() {
+  [...bar.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b.textContent === cur));
+  dyn.innerHTML = ""; top_.innerHTML = "";
+  const onlyBad = document.getElementById("onlybad").checked;
+  D.stands.forEach((s, i) => {
+    const v = s.per[cur];
+    let col = css("--mut");
+    if (s.k === "pushback") col = v && v.ok ? css("--ok") : css("--bad");
+    else if (s.k === "faces_taxiway") col = css("--fwd");
+    if (onlyBad && !(s.k === "pushback" && v && !v.ok)) return;
+    if (v && v.ok && !onlyBad) {
+      el("polyline", {points: v.pts.map(P).join(" "), fill: "none", stroke: css("--pb"), "stroke-width": 1.6, opacity: .85}, dyn);
+      tri(v.end, v.eh, 6, css("--end"), dyn);
+    }
+    const g = el("g", {style: "cursor:pointer"}, dyn);
+    tri(s.p, s.h, 4.5, col, g);
+    el("circle", {cx: s.p[0], cy: -s.p[1], r: 6, fill: "transparent"}, g);
+    const t = el("title", {}, g); t.textContent = s.n + "（" + s.t + "，" + (s.c || "?") + "）";
+    g.onclick = ev => { ev.stopPropagation(); selStand = i; detail(); };
+  });
+  detail();
+}
+function detail() {
+  top_.innerHTML = "";
+  if (selStand === null) return;
+  const s = D.stands[selStand], side = document.getElementById("side");
+  const v = s.per[cur];
+  if (v && v.ok) {
+    el("polyline", {points: v.rt.map(P).join(" "), fill: "none", stroke: css("--rt"), "stroke-width": 4, opacity: .9, "stroke-linejoin": "round"}, top_);
+    el("polyline", {points: v.pts.map(P).join(" "), fill: "none", stroke: css("--pb"), "stroke-width": 3.5}, top_);
+    tri(v.end, v.eh, 9, css("--end"), top_);
+    if (v.hs) el("circle", {cx: v.hs[0], cy: -v.hs[1], r: 7, fill: css("--hs")}, top_);
+  }
+  el("circle", {cx: s.p[0], cy: -s.p[1], r: 10, fill: "none", stroke: css("--fg"), "stroke-width": 2}, top_);
+  let h = `<h2>停機位 ${s.n}</h2><div class="mut">${s.t}，等級 ${s.c || "?"}，機型 ${s.ac || "-"}，停機朝向 ${Math.round(s.h)}°，分類 ${s.k}${s.rmin ? "，最小轉彎半徑 " + s.rmin + " m" : ""}</div>`;
+  if (s.k === "pushback") {
+    h += `<table><tr><th>跑道</th><th>推完機頭</th><th>停在</th><th>後推</th><th>滑行</th><th>指示</th></tr>`;
+    D.rends.forEach(rn => {
+      const w = s.per[rn];
+      if (!w) return;
+      if (!w.ok) { h += `<tr class="${rn === cur ? "sel" : ""}"><td>${rn}</td><td colspan="5" style="color:var(--bad)">${w.why}</td></tr>`; return; }
+      h += `<tr class="${rn === cur ? "sel" : ""}"><td>${rn}</td><td>${String(w.eh).padStart(3, "0")}°</td><td>${w.e || "(無名)"}</td><td>${w.pb} m<br><span class="mut">轉 ${w.rot}°，舵 ${w.st}°<br>${{standard: "標準", unusual: "少見", suspect: "可疑"}[w.tier]}</span></td><td>${w.taxi} m${w.x ? "<br>穿越 " + w.x : ""}${w.bt ? "<br>跑道回滑 " + w.bt + " m" : ""}</td><td>${w.nm.join(" → ")}${w.hs ? " → hold short " + rn : ""}<br><span class="mut">第一個轉彎 ${w.ft}°，鼻輪離中線 ${w.on} m，入口損失跑道 ${w.lost} m${w.z ? "，終點在 active zone" : ""}</span>${w.cf && w.cf.length ? `<br><span style="color:var(--bad)">後推經過停機位 ${w.cf.join("、")}</span>` : ""}${w.xw && w.xw.length ? `<br><span style="color:var(--bad)">後推橫越滑行道 ${w.xw.join("、")}</span>` : ""}</td></tr>`;
+    });
+    h += "</table>";
+    if (s.diag) h += `<p class="mut">候選統計：${Object.entries(s.diag).map(([k, n]) => k + "=" + n).join("，")}</p>`;
+  }
+  side.innerHTML = h;
+}
+// pan / zoom
+let drag = null;
+svg.addEventListener("wheel", ev => { ev.preventDefault(); const r = svg.getBoundingClientRect(); const fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height; const k = ev.deltaY > 0 ? 1.15 : 1 / 1.15; const nw = vb[2] * k, nh = vb[3] * k; vb = [vb[0] + (vb[2] - nw) * fx, vb[1] + (vb[3] - nh) * fy, nw, nh]; setVB(); }, {passive: false});
+svg.addEventListener("pointerdown", ev => { drag = [ev.clientX, ev.clientY, vb[0], vb[1]]; svg.setPointerCapture(ev.pointerId); });
+svg.addEventListener("pointermove", ev => { if (!drag) return; const r = svg.getBoundingClientRect(); const s = Math.max(vb[2] / r.width, vb[3] / r.height); vb[0] = drag[2] - (ev.clientX - drag[0]) * s; vb[1] = drag[3] - (ev.clientY - drag[1]) * s; setVB(); });
+svg.addEventListener("pointerup", () => drag = null);
+draw();
+</script>
+</body>
+</html>
