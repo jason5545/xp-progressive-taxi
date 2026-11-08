@@ -54,3 +54,8 @@ notarize/RequestInfo.plist
 notarize/UploadInfo.plist
 notarize/user.make
 BetterPushback.zip
+
+# ProgressiveTaxi fork
+ProgressiveTaxi
+tools/proto/out/
+__pycache__/

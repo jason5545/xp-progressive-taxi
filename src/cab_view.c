@@ -292,7 +292,7 @@ cab_view_start(void)
 	if (!cab_view_can_start())
 		return (B_FALSE);
 
-	fdr_find(&cab_pos_dr, "bp/anim/cab_position");
+	fdr_find(&cab_pos_dr, "ptaxi/anim/cab_position");
 	/*
 	 * To avoid aircraft parts clipping over scenery, we need to first
 	 * shift the view to an external one, before controlling the camera.

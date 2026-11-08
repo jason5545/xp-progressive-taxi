@@ -302,26 +302,26 @@ cmd_dispatch(float elapsed, float elapsed2, int counter, void *refcon)
 	UNUSED(refcon);
 
 	if (cmds.start) {
-		XPLMCommandOnce(XPLMFindCommand("BetterPushback/start"));
+		XPLMCommandOnce(XPLMFindCommand("ProgressiveTaxi/start"));
 		cmds.start = B_FALSE;
 	}
 	cmds.can_start = !bp_started;
 
 	if (cmds.stop) {
-		XPLMCommandOnce(XPLMFindCommand("BetterPushback/stop"));
+		XPLMCommandOnce(XPLMFindCommand("ProgressiveTaxi/stop"));
 		cmds.stop = B_FALSE;
 	}
 	cmds.can_stop = bp_started;
 
 	if (cmds.start_planner) {
 		XPLMCommandOnce(XPLMFindCommand(
-		    "BetterPushback/start_planner"));
+		    "ProgressiveTaxi/start_planner"));
 		cmds.start_planner = B_FALSE;
 	}
 	cmds.can_start_planner = !bp_started;
 
 	if (cmds.cab_camera) {
-		XPLMCommandOnce(XPLMFindCommand("BetterPushback/cab_camera"));
+		XPLMCommandOnce(XPLMFindCommand("ProgressiveTaxi/cab_camera"));
 		cmds.cab_camera = B_FALSE;
 	}
 	cmds.can_cab_camera = bp_started;

@@ -71345,21 +71345,21 @@ ATTR_shiny_rat 0
 ATTR_no_shadow	
 TRIS	0 6
 ANIM_begin
-ANIM_trans_begin	bp/anim/driver_orientation
+ANIM_trans_begin	ptaxi/anim/driver_orientation
 ANIM_trans_key	0	-0.41971484	0.86747617	-1.34563911
 ANIM_trans_key	0.5	-0.07152256	0.86747617	-1.73145318
 ANIM_trans_key	1	0.41589397	0.86747617	-2.19049215
 ANIM_trans_end
-ANIM_rotate_begin	0	1	0	bp/anim/driver_orientation
+ANIM_rotate_begin	0	1	0	ptaxi/anim/driver_orientation
 ANIM_rotate_key	0	0
 ANIM_rotate_key	0.5	-90.0000025
 ANIM_rotate_key	1	-180.00001867
 ANIM_rotate_end
-ANIM_hide	1	1	bp/anim/lift_in_transit
+ANIM_hide	1	1	ptaxi/anim/lift_in_transit
 ATTR_depth
 ATTR_shadow
- ANIM_hide 1 1 bp/anim/clear_signal
- ANIM_hide -1 -1 bp/anim/clear_signal
+ ANIM_hide 1 1 ptaxi/anim/clear_signal
+ ANIM_hide -1 -1 ptaxi/anim/clear_signal
 TRIS	10416 552
 	TRIS	2112 864
 	TRIS	5568 420
@@ -71367,7 +71367,7 @@ TRIS	10416 552
 	TRIS	7248 768
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/lift_in_transit
+ANIM_hide	0	0	ptaxi/anim/lift_in_transit
 TRIS	12072 552
 	TRIS	4704 864
 	TRIS	6828 420
@@ -71375,8 +71375,8 @@ TRIS	12072 552
 	TRIS	9552 864
 ANIM_end
 ANIM_begin
-ANIM_hide	-1	1	bp/anim/clear_signal
-ANIM_show	-1	-1	bp/anim/clear_signal
+ANIM_hide	-1	1	ptaxi/anim/clear_signal
+ANIM_show	-1	-1	ptaxi/anim/clear_signal
 TRIS	11520 552
 	TRIS	22101 48
 	ANIM_begin
@@ -71390,8 +71390,8 @@ TRIS	11520 552
 	TRIS	8784 768
 ANIM_end
 ANIM_begin
-ANIM_hide	-1	1	bp/anim/clear_signal
-ANIM_show	1	1	bp/anim/clear_signal
+ANIM_hide	-1	1	ptaxi/anim/clear_signal
+ANIM_show	1	1	ptaxi/anim/clear_signal
 TRIS	10968 552
 	TRIS	22053 48
 	ANIM_begin
@@ -71408,27 +71408,27 @@ TRIS	21228 171
 TRIS	21399 162
 TRIS	6 33
 ANIM_begin
-ANIM_trans_begin	bp/anim/lift_arm
+ANIM_trans_begin	ptaxi/anim/lift_arm
 ANIM_trans_key	1	0	0.50770068	1.60315418
 ANIM_trans_key	0.5	0	0.47709301	1.28238797
 ANIM_trans_key	0	0	0.40999162	0.9616217
 ANIM_trans_end
-ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 ANIM_rotate_key	1	0.0000004
 ANIM_rotate_key	0.5	-2.840376
 ANIM_rotate_key	0	-7.60090345
 ANIM_rotate_end
-ANIM_hide	0 0 bp/anim/winch_on
+ANIM_hide	0 0 ptaxi/anim/winch_on
 TRIS	59829 42
 	ANIM_begin
 	ANIM_trans	0	-0.49004245	-2.03694034	0	-0.49004245	-2.03694034
 	ANIM_rotate	0	1	0	0	0
 	ANIM_rotate	0	0	-1	0	0
-	ANIM_trans_begin	bp/anim/lift
+	ANIM_trans_begin	ptaxi/anim/lift
 	ANIM_trans_key	0	0	0.48128754	2.79751682
 	ANIM_trans_key	1	0	0.49244386	2.79851484
 	ANIM_trans_end
-	ANIM_rotate_begin	1	0	0	bp/anim/lift
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 	ANIM_rotate_key	0	0
 	ANIM_rotate_key	1	-12.80680277
 	ANIM_rotate_end
@@ -71439,15 +71439,15 @@ TRIS	59829 42
 ANIM_end
 TRIS	12768 30
 ANIM_begin
-ANIM_hide	1	1	bp/anim/winch_on
+ANIM_hide	1	1	ptaxi/anim/winch_on
 TRIS	59871 48
 	TRIS	63975 864
 ANIM_end
 ANIM_begin
-ANIM_trans_begin	bp/anim/front_steer
+ANIM_trans_begin	ptaxi/anim/front_steer
 ANIM_trans_key	0	-0.79232895	0.26535437	-0.76933295
 ANIM_trans_end
-ANIM_rotate_begin	0	1	0	bp/anim/front_steer
+ANIM_rotate_begin	0	1	0	ptaxi/anim/front_steer
 ANIM_rotate_key	0	-120.00000334
 ANIM_rotate_key	0.5	-180.00001867
 ANIM_rotate_key	1	-240.00000668
@@ -71455,10 +71455,10 @@ ANIM_rotate_end
 TRIS	16368 138
 	ANIM_begin
 	ANIM_trans	-0.79232895	-0.24104813	0.76933295	-0.79232895	-0.24104813	0.76933295
-	ANIM_trans_begin	bp/anim/front_drive
+	ANIM_trans_begin	ptaxi/anim/front_drive
 	ANIM_trans_key	0	0.79232895	0.24104813	-0.76933283
 	ANIM_trans_end
-	ANIM_rotate_begin	1	0	0	bp/anim/front_drive
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/front_drive
 	ANIM_rotate_key	0	0
 	ANIM_rotate_key	0.25	90.0000025
 	ANIM_rotate_key	0.5	180.00000501
@@ -71471,10 +71471,10 @@ TRIS	16368 138
 	ANIM_end
 ANIM_end
 ANIM_begin
-ANIM_trans_begin	bp/anim/front_steer
+ANIM_trans_begin	ptaxi/anim/front_steer
 ANIM_trans_key	0	0.79232895	0.26535437	-0.76933295
 ANIM_trans_end
-ANIM_rotate_begin	0	1	0	bp/anim/front_steer
+ANIM_rotate_begin	0	1	0	ptaxi/anim/front_steer
 ANIM_rotate_key	0	60.00000167
 ANIM_rotate_key	0.5	0
 ANIM_rotate_key	1	-60.00000167
@@ -71482,10 +71482,10 @@ ANIM_rotate_end
 TRIS	16230 138
 	ANIM_begin
 	ANIM_trans	-0.79232889	-0.24104813	0.769333	-0.79232889	-0.24104813	0.769333
-	ANIM_trans_begin	bp/anim/front_drive
+	ANIM_trans_begin	ptaxi/anim/front_drive
 	ANIM_trans_key	0	0.79232895	0.24104813	-0.76933283
 	ANIM_trans_end
-	ANIM_rotate_begin	1	0	0	bp/anim/front_drive
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/front_drive
 	ANIM_rotate_key	0	0
 	ANIM_rotate_key	0.25	-90.0000025
 	ANIM_rotate_key	0.5	-180.00000501
@@ -71499,10 +71499,10 @@ TRIS	16230 138
 ANIM_end
 TRIS	58353 1278
 ANIM_begin
-ANIM_trans_begin	bp/anim/driver_orientation
+ANIM_trans_begin	ptaxi/anim/driver_orientation
 ANIM_trans_key	0	0.01248839	0.63433933	-1.6614002
 ANIM_trans_end
-ANIM_rotate_begin	1	0	0	bp/anim/driver_orientation
+ANIM_rotate_begin	1	0	0	ptaxi/anim/driver_orientation
 ANIM_rotate_key	0	0
 ANIM_rotate_key	1	90.0000025
 ANIM_rotate_end
@@ -71524,17 +71524,17 @@ TRIS	44913 84
 TRIS	44745 168
 TRIS	12798 84
 ANIM_begin
-ANIM_trans_begin	bp/anim/lift
+ANIM_trans_begin	ptaxi/anim/lift
 ANIM_trans_key	0	0	0.5	1.69499898
 ANIM_trans_end
-ANIM_rotate_begin	1	0	0	bp/anim/lift
+ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 ANIM_rotate_key	0	0
 ANIM_rotate_key	1	-8.54112338
 ANIM_rotate_end
 TRIS	35313 90
 	TRIS	35403 516
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/lift
+	ANIM_hide	0	0	ptaxi/anim/lift
 	TRIS	35919 36
 	ANIM_end
 	TRIS	35955 168
@@ -71542,10 +71542,10 @@ TRIS	35313 90
 	ANIM_trans	0	-0.5	-1.6949991	0	-0.5	-1.6949991
 	ANIM_rotate	0	1	0	0	0
 	ANIM_rotate	0	0	-1	0	0
-	ANIM_trans_begin	bp/anim/lift
+	ANIM_trans_begin	ptaxi/anim/lift
 	ANIM_trans_key	0	0.83779138	0.08242624	2.16308451
 	ANIM_trans_end
-	ANIM_rotate_begin	1	0	0	bp/anim/lift
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 	ANIM_rotate_key	0	11.33450085
 	ANIM_rotate_key	1	8.14751495
 	ANIM_rotate_end
@@ -71560,10 +71560,10 @@ TRIS	18942 318
 	ANIM_rotate	0	1	0	0	0
 	ANIM_rotate	0	0	-1	0	0
 	ANIM_rotate	1	0	0	-16.39843555	-16.39843555
-	ANIM_trans_begin	bp/anim/front_steer
+	ANIM_trans_begin	ptaxi/anim/front_steer
 	ANIM_trans_key	0	-0.43742692	0.79750109	-2.05136585
 	ANIM_trans_end
-	ANIM_rotate_begin	0	0	-1	bp/anim/front_steer
+	ANIM_rotate_begin	0	0	-1	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	-357.99999403
 	ANIM_rotate_key	0.25	-178.99999701
 	ANIM_rotate_key	0.5	0
@@ -71580,24 +71580,24 @@ TRIS	45771 102
 	ANIM_rotate	0	1	0	0	0
 	ANIM_rotate	0	0	-1	0	0
 	ANIM_rotate	1	0	0	17.97096024	17.97096024
-	ANIM_trans_begin	bp/anim/front_steer
+	ANIM_trans_begin	ptaxi/anim/front_steer
 	ANIM_trans_key	0	0.44026121	0.72867239	-1.46354961
 	ANIM_trans_end
-	ANIM_rotate_begin	0	1	0	bp/anim/front_steer
+	ANIM_rotate_begin	0	1	0	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	0.00000007
 	ANIM_rotate_key	0.25	0.00000007
 	ANIM_rotate_key	0.5	0.00000007
 	ANIM_rotate_key	0.75	0.00000007
 	ANIM_rotate_key	1	0.00000007
 	ANIM_rotate_end
-	ANIM_rotate_begin	0	0	-1	bp/anim/front_steer
+	ANIM_rotate_begin	0	0	-1	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	357.99999403
 	ANIM_rotate_key	0.25	178.99999701
 	ANIM_rotate_key	0.5	-0.00000043
 	ANIM_rotate_key	0.75	-178.99999701
 	ANIM_rotate_key	1	-357.99999403
 	ANIM_rotate_end
-	ANIM_rotate_begin	1	0	0	bp/anim/front_steer
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	-17.71229757
 	ANIM_rotate_key	0.25	-17.71229757
 	ANIM_rotate_key	0.5	-17.71229757
@@ -71621,10 +71621,10 @@ TRIS	50475 276
 TRIS	13050 192
 TRIS	12882 168
 ANIM_begin
-ANIM_trans_begin	bp/anim/lift
+ANIM_trans_begin	ptaxi/anim/lift
 ANIM_trans_key	0	0.79232907	0.15076369	1.80166006
 ANIM_trans_end
-ANIM_rotate_begin	1	0	0	bp/anim/lift
+ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 ANIM_rotate_key	0	-168.16547284
 ANIM_rotate_key	1	-179.85987685
 ANIM_rotate_end
@@ -71634,10 +71634,10 @@ TRIS	35049 264
 TRIS	36123 204
 TRIS	43035 252
 ANIM_begin
-ANIM_trans_begin	bp/anim/rear_drive
+ANIM_trans_begin	ptaxi/anim/rear_drive
 ANIM_trans_key	0	0.8854726	0.30348209	1.57430232
 ANIM_trans_end
-ANIM_rotate_begin	1	0	0	bp/anim/rear_drive
+ANIM_rotate_begin	1	0	0	ptaxi/anim/rear_drive
 ANIM_rotate_key	0	0
 ANIM_rotate_key	0.25	-90.0000025
 ANIM_rotate_key	0.5	-180.00000501
@@ -71652,7 +71652,7 @@ TRIS	336 288
 TRIS	45327 222
 TRIS	43593 756
 ANIM_begin
-ANIM_hide	0	0	bp/anim/beacon_flash
+ANIM_hide	0	0	ptaxi/anim/beacon_flash
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0 0.87423813 -2.54471064 0 0.87423813 -2.54471064 0 0 no_ref
 ANIM_rotate 0 1 0 -90 -90 0 0 no_ref
@@ -71660,11 +71660,11 @@ LIGHT_PARAM airplane_nav_left_size 0 0 0 0.75 -1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/beacon_flash
+ANIM_hide	0	0	ptaxi/anim/beacon_flash
 LIGHT_PARAM	airplane_nav_sp 0 0.87423813 -2.54471064 1 0 0 0 7.5 0 0 -1 -0.5
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/cradle_lights
+ANIM_hide	0	0	ptaxi/anim/cradle_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.55688757 0.58111894 1.81986284 0.55688757 0.58111894 1.81986284 0 0 no_ref
 ANIM_rotate 0 1 0 135 135 0 0 no_ref
@@ -71672,7 +71672,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/cradle_lights
+ANIM_hide	0	0	ptaxi/anim/cradle_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.55688757 0.58111894 1.81986284 0.55688757 0.58111894 1.81986284 0 0 no_ref
 ANIM_rotate 0 1 0 135 135 0 0 no_ref
@@ -71680,7 +71680,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/cradle_lights
+ANIM_hide	0	0	ptaxi/anim/cradle_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.55688757 0.58111894 1.81986284 0.55688757 0.58111894 1.81986284 0 0 no_ref
 ANIM_rotate 0 1 0 135 135 0 0 no_ref
@@ -71688,11 +71688,11 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/cradle_lights
+ANIM_hide	0	0	ptaxi/anim/cradle_lights
 LIGHT_PARAM	full_custom_halo 0.55688757 0.58111894 1.81986284 1 1 1 1 30 -0.67 0 0.67 0.1
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.79459763 0.58111894 1.91088736 -0.79459763 0.58111894 1.91088736 0 0 no_ref
 ANIM_rotate 0 1 0 180 180 0 0 no_ref
@@ -71700,7 +71700,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.79459763 0.58111894 1.91088736 -0.79459763 0.58111894 1.91088736 0 0 no_ref
 ANIM_rotate 0 1 0 180 180 0 0 no_ref
@@ -71708,7 +71708,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.79459763 0.58111894 1.91088736 -0.79459763 0.58111894 1.91088736 0 0 no_ref
 ANIM_rotate 0 1 0 180 180 0 0 no_ref
@@ -71716,15 +71716,15 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 LIGHT_PARAM	full_custom_halo -0.79285598 0.58111894 1.91088736 1 1 1 1 30 0 0 1 0.8
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 LIGHT_PARAM	full_custom_halo 0.78863442 0.58111894 1.91088736 1 1 1 1 30 0 0 1 0.8
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.78863442 0.58111894 1.91088736 0.78863442 0.58111894 1.91088736 0 0 no_ref
 ANIM_rotate 0 1 0 180 180 0 0 no_ref
@@ -71732,7 +71732,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.78863442 0.58111894 1.91088736 0.78863442 0.58111894 1.91088736 0 0 no_ref
 ANIM_rotate 0 1 0 180 180 0 0 no_ref
@@ -71740,7 +71740,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 1
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.78863442 0.58111894 1.91088736 0.78863442 0.58111894 1.91088736 0 0 no_ref
 ANIM_rotate 0 1 0 180 180 0 0 no_ref
@@ -71748,29 +71748,29 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 ## UNFUCKERY END ##
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/vehicle_lights
+ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 LIGHT_PARAM	airplane_generic_core 0.74763596 0.75355029 -2.63123131 0 0 0.25 1 0.6
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/vehicle_lights
+ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 LIGHT_PARAM	airplane_generic_flare 0.74763596 0.75355029 -2.63123131 0 0 0.25 1 2
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/vehicle_lights
+ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 LIGHT_PARAM	airplane_generic_glow 0.74763596 0.75355029 -2.63123131 0 0 0.25 1 2
 ANIM_end
 LIGHT_PARAM	full_custom_halo_night 0.74763596 0.75355029 -2.63123131 1 1 1 1 30 0.2 -0.5 -1 0.8
 LIGHT_PARAM	full_custom_halo_night -0.7460168 0.75355029 -2.63123131 1 1 1 1 30 0.2 -0.5 -1 0.8
 ANIM_begin
-ANIM_hide	0	0	bp/anim/vehicle_lights
+ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 LIGHT_PARAM	airplane_generic_glow -0.7460168 0.75355029 -2.63123131 0 0 0.25 1 2
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/vehicle_lights
+ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 LIGHT_PARAM	airplane_generic_flare -0.7460168 0.75355029 -2.63123131 0 0 0.25 1 2
 ANIM_end
 ANIM_begin
-ANIM_hide	0	0	bp/anim/vehicle_lights
+ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 LIGHT_PARAM	airplane_generic_core -0.7460168 0.75355029 -2.63123131 0 0 0.25 1 0.6
 ANIM_end
 

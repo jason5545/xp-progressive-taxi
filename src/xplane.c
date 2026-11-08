@@ -51,9 +51,15 @@
 /* Enables leaving bp_tug_name set to facilitate local master/slave debug */
 /*#define	SLAVE_DEBUG*/
 
-#define BP_PLUGIN_NAME		"BetterPushback-" BP_PLUGIN_VERSION
-#define BP_PLUGIN_SIG		"skiselkov.BetterPushback"
-#define BP_PLUGIN_DESCRIPTION	"Generic automated pushback plugin"
+/*
+ * Renamed so that this fork can be installed side-by-side with the original
+ * BetterPushback (signature "skiselkov.BetterPushback"). See AGENTS.md.
+ */
+#define BP_PLUGIN_NAME		"ProgressiveTaxi-" BP_PLUGIN_VERSION
+#define BP_PLUGIN_SIG		"jason5545.ProgressiveTaxi"
+#define BP_PLUGIN_DESCRIPTION	"Automated pushback and progressive taxi " \
+	"(fork of BetterPushback)"
+#define	ORIG_BP_PLUGIN_SIG	"skiselkov.BetterPushback"
 
 #define	STATUS_CHECK_INTVAL	1	/* second */
 enum {
@@ -112,30 +118,30 @@ static XPLMFlightLoopID		reload_floop_ID = NULL;
  * net via syncing addons such as smartcopilot. This works as follows:
  * 1) Master/slave must not be switched during pushback (undefined behavior
  *	may result). It's possible to observe if BetterPushback is running by
- *	monitoring the read-only boolean "bp/started" dataref. This dataref
+ *	monitoring the read-only boolean "ptaxi/started" dataref. This dataref
  *	must NOT be synced, it's only a hint to smartcopilot whether
  *	switching is safe.
- * 2) The boolean dataref "bp/slave_mode" must be set to 0 on the master and
+ * 2) The boolean dataref "ptaxi/slave_mode" must be set to 0 on the master and
  *	1 on the slave.
- * 3) The boolean dataref "bp/op_complete" must be synced from master to
+ * 3) The boolean dataref "ptaxi/op_complete" must be synced from master to
  *	slave. This signals to bp_run() that the pushback stage needs to
  *	progress to either PB_STEP_STOPPING if the tug has already attached,
  *	or immediately to bp_complete() if it has not. The master sets this
  *	dataref in response to either a "Stop" command request, or when it
  *	has processed all pushback segments. The slave cannot set this
  *	(master controls when pushback stops).
- * 4) The boolean dataref "bp/plan_complete" must be synced from master to
+ * 4) The boolean dataref "ptaxi/plan_complete" must be synced from master to
  *	slave. This is a signal from the master machine to the slave that
  *	if late_plan_requested was in effect, the slave can continue with
  *	the state transitions past the late_plan_requested limit. This is
  *	needed because we don't transfer the route to the slave, so the
  *	slave cannot use the presence of a route as a condition to continue.
- * 5) The string dataref "bp/tug_name" must be synced from master to slave.
+ * 5) The string dataref "ptaxi/tug_name" must be synced from master to slave.
  *	This string identifies which tug model the master selected (since tug
  *	selection is non-deterministic). The slave then instances its tug
  *	object using tug_alloc_man. Both master and slave must have identical
  *	tug libraries, otherwise sync fails.
- * 6) The command "BetterPushback/start" should be synced from mater to slave.
+ * 6) The command "ProgressiveTaxi/start" should be synced from mater to slave.
  *	There's no need to sync any other commands. The planning GUI is
  *	disabled on the slave machine and stopping of the pushback can only be
  *	performed by the master machine.
@@ -171,7 +177,7 @@ set_xp11_tug_hidden(bool_t flag)
 	    "sim objects", "apt_vehicles", "pushback", "Tug_GT110.obj", NULL);
 	filename_backup = mkpathname(bp_xpdir, "Resources", "default scenery",
 	    "sim objects", "apt_vehicles", "pushback",
-	    "Tug_GT110-BetterPushback-backup.obj", NULL);
+	    "Tug_GT110-ProgressiveTaxi-backup.obj", NULL);
 
 	if (flag) {
 		FILE *fp;
@@ -535,8 +541,8 @@ XPluginStart(char *name, char *sig, char *desc)
 	char *p;
 	GLenum err;
 
-	log_init(XPLMDebugString, "BetterPushback");
-	logMsg("This is BetterPushback-" BP_PLUGIN_VERSION
+	log_init(XPLMDebugString, "ProgressiveTaxi");
+	logMsg("This is ProgressiveTaxi-" BP_PLUGIN_VERSION
 	    " libacfutils-%s", libacfutils_version);
 
 	crc64_init();
@@ -599,37 +605,37 @@ XPluginStart(char *name, char *sig, char *desc)
 	xlate_init();
 
 	/* We can't delete commands, so put their creation here */
-	start_pb = XPLMCreateCommand("BetterPushback/start",
+	start_pb = XPLMCreateCommand("ProgressiveTaxi/start",
 	    _("Start pushback"));
-	stop_pb = XPLMCreateCommand("BetterPushback/stop",
+	stop_pb = XPLMCreateCommand("ProgressiveTaxi/stop",
 	    _("Stop pushback"));
-	start_cam = XPLMCreateCommand("BetterPushback/start_planner",
+	start_cam = XPLMCreateCommand("ProgressiveTaxi/start_planner",
 	    _("Start pushback planner"));
-	stop_cam = XPLMCreateCommand("BetterPushback/stop_planner",
+	stop_cam = XPLMCreateCommand("ProgressiveTaxi/stop_planner",
 	    _("Stop pushback planner"));
-	conn_first = XPLMCreateCommand("BetterPushback/connect_first",
+	conn_first = XPLMCreateCommand("ProgressiveTaxi/connect_first",
 	    _("Connect tug before entering pushback plan"));
-	cab_cam = XPLMCreateCommand("BetterPushback/cab_camera",
+	cab_cam = XPLMCreateCommand("ProgressiveTaxi/cab_camera",
 	    _("View from tug's cab."));
 	recreate_routes = XPLMCreateCommand(
-	    "BetterPushback/recreate_scenery_routes",
+	    "ProgressiveTaxi/recreate_scenery_routes",
 	    _("Recreate scenery routes from WED files."));
 
 	bp_boot_init();
 
 	dr_create_i(&bp_started_dr, (int *)&bp_started, B_FALSE,
-	    "bp/started");
+	    "ptaxi/started");
 	dr_create_i(&bp_connected_dr, (int *)&bp_connected, B_FALSE,
-	    "bp/connected");
+	    "ptaxi/connected");
 	dr_create_i(&slave_mode_dr, (int *)&slave_mode, B_TRUE,
-	    "bp/slave_mode");
+	    "ptaxi/slave_mode");
 	slave_mode_dr.write_cb = slave_mode_cb;
 	dr_create_i(&op_complete_dr, (int *)&op_complete, B_TRUE,
-	    "bp/op_complete");
+	    "ptaxi/op_complete");
 	dr_create_i(&plan_complete_dr, (int *)&plan_complete, B_TRUE,
-	    "bp/plan_complete");
+	    "ptaxi/plan_complete");
 	dr_create_b(&bp_tug_name_dr, bp_tug_name, sizeof (bp_tug_name),
-	    B_TRUE, "bp/tug_name");
+	    B_TRUE, "ptaxi/tug_name");
 
 	XPLMGetVersions(&bp_xp_ver, &bp_xplm_ver, &bp_host_id);
 
@@ -698,7 +704,13 @@ XPluginReceiveMessage(XPLMPluginID from, int msg, void *param)
 		break;
 	}
 
-	if (msg == XPLM_MSG_PLANE_LOADED)
+	/*
+	 * The FlightFactor A320 looks up these value objects by their
+	 * original BetterPushback names, so we keep those names. If the
+	 * original BetterPushback is also installed, let it own them.
+	 */
+	if (msg == XPLM_MSG_PLANE_LOADED &&
+	    XPLMFindPluginBySignature(ORIG_BP_PLUGIN_SIG) == XPLM_NO_PLUGIN_ID)
 		(void) ff_a320_intf_init();
 	else if (msg == XPLM_MSG_PLANE_UNLOADED)
 		ff_a320_intf_fini();
@@ -708,7 +720,7 @@ static bool_t
 bp_priv_enable(void)
 {
 	char *cachedir = mkpathname(xpdir, "Output", "caches",
-	    "BetterPushbackAirports.cache", NULL);
+	    "ProgressiveTaxiAirports.cache", NULL);
 	bool_t dont_hide_xp_tug = B_FALSE;
 
 	ASSERT(!inited);
@@ -740,8 +752,8 @@ bp_priv_enable(void)
 	    1, NULL);
 
 	plugins_menu_item = XPLMAppendMenuItem(XPLMFindPluginsMenu(),
-	    "Better Pushback", NULL, 1);
-	root_menu = XPLMCreateMenu("Better Pushback", XPLMFindPluginsMenu(),
+	    "Progressive Taxi", NULL, 1);
+	root_menu = XPLMCreateMenu("Progressive Taxi", XPLMFindPluginsMenu(),
 	    plugins_menu_item, menu_cb, NULL);
 
 	start_pb_plan_menu_item = XPLMAppendMenuItem(root_menu,

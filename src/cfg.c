@@ -33,7 +33,7 @@
 #include "msg.h"
 #include "xplane.h"
 
-#define	CONF_FILENAME	"BetterPushback.cfg"
+#define	CONF_FILENAME	"ProgressiveTaxi.cfg"
 #define	CONF_DIRS	bp_xpdir, "Output", "preferences"
 
 conf_t *bp_conf = NULL;

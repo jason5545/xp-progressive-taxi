@@ -79388,7 +79388,7 @@ IDX	72146
 	ANIM_rotate	0	1	0	31.90760095	31.90760095
 	ANIM_rotate	1	0	0	-179.99999135	-179.99999135
 	# rotation keyframes
-	ANIM_rotate_begin	-0.99634951	-0.08477413	0.01310558	bp/anim/lift
+	ANIM_rotate_begin	-0.99634951	-0.08477413	0.01310558	ptaxi/anim/lift
 	ANIM_rotate_key	0	0
 	ANIM_rotate_key	1	5.01388691
 	ANIM_rotate_end
@@ -79409,7 +79409,7 @@ IDX	72146
 	ANIM_rotate	0	0	-1	-0.00000011	-0.00000011
 	ANIM_rotate	1	0	0	-179.99999135	-179.99999135
 	# rotation keyframes
-	ANIM_rotate_begin	-0.99954593	0.02890295	-0.01154583	bp/anim/lift
+	ANIM_rotate_begin	-0.99954593	0.02890295	-0.01154583	ptaxi/anim/lift
 	ANIM_rotate_key	0	0
 	ANIM_rotate_key	1	5.003257
 	ANIM_rotate_end
@@ -79427,7 +79427,7 @@ IDX	72146
 	# static rotation
 	ANIM_rotate	1	0	0	-179.99999135	-179.99999135
 	# translation keyframes
-	ANIM_trans_begin	bp/anim/lift
+	ANIM_trans_begin	ptaxi/anim/lift
 	ANIM_trans_key	0	0	0	0
 	ANIM_trans_key	0.5	0	-0.05	0.00000001
 	ANIM_trans_key	1	0	-0.1	0.00000002
@@ -79443,14 +79443,14 @@ IDX	72146
 			TRIS	38424 552
 				# 5 Object: Cradle lights - night light
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# PRIMITIVE: Cradle lights - night light	weight: 2
 				# MATERIAL: Black fenders
 				TRIS	5679 60
 				ANIM_end
 				# 5 Object: Left cradle light (core)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Left cradle light (core)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.64708358 -0.40125611 -0.3212353 -0.64708358 -0.40125611 -0.3212353 0 0 no_ref
@@ -79461,7 +79461,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 				ANIM_end
 				# 5 Object: Left cradle light (flare)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Left cradle light (flare)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.64708358 -0.40125611 -0.3212353 -0.64708358 -0.40125611 -0.3212353 0 0 no_ref
@@ -79472,7 +79472,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 2
 				ANIM_end
 				# 5 Object: Left cradle light (glow)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Left cradle light (glow)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.64708358 -0.40125611 -0.3212353 -0.64708358 -0.40125611 -0.3212353 0 0 no_ref
@@ -79483,13 +79483,13 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_end
 				# 5 Object: Left cradle light (spill)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Left cradle light (spill)	weight: 10000
 				LIGHT_PARAM	full_custom_halo_night -0.648772 -0.39210349 -0.31816995 1 1 1 1 8 1 0.5 -1 0.6
 				ANIM_end
 				# 5 Object: Right cradle light (core)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Right cradle light (core)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.6415996 -0.40735793 -0.32093298 0.6415996 -0.40735793 -0.32093298 0 0 no_ref
@@ -79500,7 +79500,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 				ANIM_end
 				# 5 Object: Right cradle light (flare)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Right cradle light (flare)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.6415996 -0.40735793 -0.32093298 0.6415996 -0.40735793 -0.32093298 0 0 no_ref
@@ -79511,7 +79511,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 2
 				ANIM_end
 				# 5 Object: Right cradle light (glow)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Right cradle light (glow)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.6415996 -0.40735793 -0.32093298 0.6415996 -0.40735793 -0.32093298 0 0 no_ref
@@ -79522,7 +79522,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_end
 				# 5 Object: Right cradle light (spill)
 				ANIM_begin
-				ANIM_hide	0	0	bp/anim/cradle_lights
+				ANIM_hide	0	0	ptaxi/anim/cradle_lights
 				# LIGHT: Right cradle light (spill)	weight: 10000
 				LIGHT_PARAM	full_custom_halo_night 0.6415996 -0.40473711 -0.32093298 1 1 1 1 8 -1 0.5 -1   0.6
 				ANIM_end
@@ -79539,11 +79539,11 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_rotate	0	0	-1	0	0
 				ANIM_rotate	1	0	0	179.99999135	179.99999135
 				# translation keyframes
-				ANIM_trans_begin	bp/anim/lift
+				ANIM_trans_begin	ptaxi/anim/lift
 				ANIM_trans_key	0	-0.01767154	0.37431937	1.51732028
 				ANIM_trans_end
 				# rotation keyframes
-				ANIM_rotate_begin	1	0	0	bp/anim/lift
+				ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 				ANIM_rotate_key	0	0
 				ANIM_rotate_key	1	8.60216222
 				ANIM_rotate_end
@@ -79560,11 +79560,11 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_rotate	0	0	-1	0	0
 				ANIM_rotate	1	0	0	179.99999135	179.99999135
 				# translation keyframes
-				ANIM_trans_begin	bp/anim/lift
+				ANIM_trans_begin	ptaxi/anim/lift
 				ANIM_trans_key	0	-0.01767154	0.37431937	1.28475285
 				ANIM_trans_end
 				# rotation keyframes
-				ANIM_rotate_begin	1	0	0	bp/anim/lift
+				ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 				ANIM_rotate_key	0	75.16961959
 				ANIM_rotate_key	0.5	71.21794534
 				ANIM_rotate_key	1	67.2662711
@@ -79584,11 +79584,11 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			# static rotation
 			ANIM_rotate	1	0	0	179.99999135	179.99999135
 			# translation keyframes
-			ANIM_trans_begin	bp/anim/lift_arm
+			ANIM_trans_begin	ptaxi/anim/lift_arm
 			ANIM_trans_key	0	-0.69280976	0.19810782	0.92590201
 			ANIM_trans_end
 			# rotation keyframes
-			ANIM_rotate_begin	0	1	0	bp/anim/lift_arm
+			ANIM_rotate_begin	0	1	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0
 			ANIM_rotate_key	0.60000002	0.73869974
 			ANIM_rotate_key	0.69999999	-4.67172816
@@ -79596,7 +79596,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			ANIM_rotate_key	0.89999998	-17.14291421
 			ANIM_rotate_key	1	-22.38391132
 			ANIM_rotate_end
-			ANIM_rotate_begin	0	0	-1	bp/anim/lift_arm
+			ANIM_rotate_begin	0	0	-1	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0
 			ANIM_rotate_key	0.60000002	0.01233067
 			ANIM_rotate_key	0.69999999	-0.04280356
@@ -79604,7 +79604,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			ANIM_rotate_key	0.89999998	-0.39961527
 			ANIM_rotate_key	1	-0.5975566
 			ANIM_rotate_end
-			ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+			ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0.2055841
 			ANIM_rotate_key	0.60000002	-0.95626181
 			ANIM_rotate_key	0.69999999	-1.11320035
@@ -79623,25 +79623,25 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			# static rotation
 			ANIM_rotate	1	0	0	179.99999135	179.99999135
 			# translation keyframes
-			ANIM_trans_begin	bp/anim/lift_arm
+			ANIM_trans_begin	ptaxi/anim/lift_arm
 			ANIM_trans_key	0	0.69280976	0.25825575	0.92590201
 			ANIM_trans_end
 			# rotation keyframes
-			ANIM_rotate_begin	0	1	0	bp/anim/lift_arm
+			ANIM_rotate_begin	0	1	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	5.22584134
 			ANIM_rotate_key	0.60000002	4.56756094
 			ANIM_rotate_key	0.69999999	9.87595835
 			ANIM_rotate_key	0.80000001	14.77375211
 			ANIM_rotate_key	1	27.13658063
 			ANIM_rotate_end
-			ANIM_rotate_begin	0	0	-1	bp/anim/lift_arm
+			ANIM_rotate_begin	0	0	-1	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0.00000001
 			ANIM_rotate_key	0.60000002	0.07506841
 			ANIM_rotate_key	0.69999999	0.17832812
 			ANIM_rotate_key	0.80000001	0.31520128
 			ANIM_rotate_key	1	0.64894652
 			ANIM_rotate_end
-			ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+			ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0
 			ANIM_rotate_key	0.60000002	-0.93958302
 			ANIM_rotate_key	0.69999999	-1.02420074
@@ -79659,7 +79659,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			# static rotation
 			ANIM_rotate	1	0	0	179.99999135	179.99999135
 			# translation keyframes
-			ANIM_trans_begin	bp/anim/lift_arm
+			ANIM_trans_begin	ptaxi/anim/lift_arm
 			ANIM_trans_key	0	-0.74999982	0.05839988	1.12777877
 			ANIM_trans_key	0.60000002	-0.74999982	0.05839988	1.47777879
 			ANIM_trans_key	0.69999999	-0.74999982	0.05839988	1.52777874
@@ -79667,21 +79667,21 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			ANIM_trans_key	1	-0.74999982	0.05839988	1.70777869
 			ANIM_trans_end
 			# rotation keyframes
-			ANIM_rotate_begin	0	1	0	bp/anim/lift_arm
+			ANIM_rotate_begin	0	1	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	-0.00000082
 			ANIM_rotate_key	0.60000002	-0.00000082
 			ANIM_rotate_key	0.69999999	-9.99999971
 			ANIM_rotate_key	0.80000001	-20.00000113
 			ANIM_rotate_key	1	-50.00000367
 			ANIM_rotate_end
-			ANIM_rotate_begin	0	0	-1	bp/anim/lift_arm
+			ANIM_rotate_begin	0	0	-1	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	-0.00000009
 			ANIM_rotate_key	0.60000002	-0.00000009
 			ANIM_rotate_key	0.69999999	-0.0000001
 			ANIM_rotate_key	0.80000001	-0.00000011
 			ANIM_rotate_key	1	-0.00000013
 			ANIM_rotate_end
-			ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+			ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0
 			ANIM_rotate_key	0.60000002	0
 			ANIM_rotate_key	0.69999999	0
@@ -79704,25 +79704,25 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_rotate	0	0	-1	0.00000009	0.00000009
 				ANIM_rotate	1	0	0	0	0
 				# translation keyframes
-				ANIM_trans_begin	bp/anim/lift_arm
+				ANIM_trans_begin	ptaxi/anim/lift_arm
 				ANIM_trans_key	0	-0.73595566	0.13183881	1.79938221
 				ANIM_trans_end
 				# rotation keyframes
-				ANIM_rotate_begin	0	1	0	bp/anim/lift_arm
+				ANIM_rotate_begin	0	1	0	ptaxi/anim/lift_arm
 				ANIM_rotate_key	0	0
 				ANIM_rotate_key	0.60000002	0.71525837
 				ANIM_rotate_key	0.69999999	6.0088649
 				ANIM_rotate_key	0.80000001	11.02844008
 				ANIM_rotate_key	1	28.65076185
 				ANIM_rotate_end
-				ANIM_rotate_begin	0	0	-1	bp/anim/lift_arm
+				ANIM_rotate_begin	0	0	-1	ptaxi/anim/lift_arm
 				ANIM_rotate_key	0	0
 				ANIM_rotate_key	0.60000002	0.01607689
 				ANIM_rotate_key	0.69999999	-0.03981549
 				ANIM_rotate_key	0.80000001	-0.2181006
 				ANIM_rotate_key	1	-0.65745672
 				ANIM_rotate_end
-				ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+				ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 				ANIM_rotate_key	0	-0.10809271
 				ANIM_rotate_key	0.60000002	-1.28755608
 				ANIM_rotate_key	0.69999999	-1.32503535
@@ -79747,7 +79747,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			# static rotation
 			ANIM_rotate	1	0	0	179.99999135	179.99999135
 			# translation keyframes
-			ANIM_trans_begin	bp/anim/lift_arm
+			ANIM_trans_begin	ptaxi/anim/lift_arm
 			ANIM_trans_key	0	0.7499997	0.05839988	1.12777877
 			ANIM_trans_key	0.60000002	0.7499997	0.05839988	1.47777879
 			ANIM_trans_key	0.69999999	0.7499997	0.05839988	1.52777874
@@ -79755,21 +79755,21 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			ANIM_trans_key	1	0.7499997	0.05839988	1.70777869
 			ANIM_trans_end
 			# rotation keyframes
-			ANIM_rotate_begin	0	1	0	bp/anim/lift_arm
+			ANIM_rotate_begin	0	1	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	-0.00000082
 			ANIM_rotate_key	0.60000002	-0.00000082
 			ANIM_rotate_key	0.69999999	9.99999886
 			ANIM_rotate_key	0.80000001	19.99999942
 			ANIM_rotate_key	1	50.00000025
 			ANIM_rotate_end
-			ANIM_rotate_begin	0	0	-1	bp/anim/lift_arm
+			ANIM_rotate_begin	0	0	-1	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	-0.00000009
 			ANIM_rotate_key	0.60000002	-0.00000009
 			ANIM_rotate_key	0.69999999	-0.00000008
 			ANIM_rotate_key	0.80000001	-0.00000007
 			ANIM_rotate_key	1	-0.00000004
 			ANIM_rotate_end
-			ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+			ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 			ANIM_rotate_key	0	0
 			ANIM_rotate_key	0.60000002	0
 			ANIM_rotate_key	0.69999999	0
@@ -79792,25 +79792,25 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_rotate	0	0	-1	0.00000009	0.00000009
 				ANIM_rotate	1	0	0	0	0
 				# translation keyframes
-				ANIM_trans_begin	bp/anim/lift_arm
+				ANIM_trans_begin	ptaxi/anim/lift_arm
 				ANIM_trans_key	0	0.7359556	0.13183881	1.79938221
 				ANIM_trans_end
 				# rotation keyframes
-				ANIM_rotate_begin	0	1	0	bp/anim/lift_arm
+				ANIM_rotate_begin	0	1	0	ptaxi/anim/lift_arm
 				ANIM_rotate_key	0	5.74665821
 				ANIM_rotate_key	0.60000002	5.11366018
 				ANIM_rotate_key	0.69999999	-0.24166871
 				ANIM_rotate_key	0.80000001	-5.28113343
 				ANIM_rotate_key	1	-22.23575768
 				ANIM_rotate_end
-				ANIM_rotate_begin	0	0	-1	bp/anim/lift_arm
+				ANIM_rotate_begin	0	0	-1	ptaxi/anim/lift_arm
 				ANIM_rotate_key	0	0
 				ANIM_rotate_key	0.60000002	0.11340068
 				ANIM_rotate_key	0.69999999	0.22366919
 				ANIM_rotate_key	0.80000001	0.38184789
 				ANIM_rotate_key	1	0.80681919
 				ANIM_rotate_end
-				ANIM_rotate_begin	1	0	0	bp/anim/lift_arm
+				ANIM_rotate_begin	1	0	0	ptaxi/anim/lift_arm
 				ANIM_rotate_key	0	-0.10809269
 				ANIM_rotate_key	0.60000002	-1.37510256
 				ANIM_rotate_key	0.69999999	-1.40841062
@@ -79830,11 +79830,11 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			# static rotation
 			ANIM_rotate	1	0	0	179.99999135	179.99999135
 			# translation keyframes
-			ANIM_trans_begin	bp/anim/tire_sense
+			ANIM_trans_begin	ptaxi/anim/tire_sense
 			ANIM_trans_key	0	-0.31036434	0.23683116	0.93872803
 			ANIM_trans_end
 			# rotation keyframes
-			ANIM_rotate_begin	1	0	0	bp/anim/tire_sense
+			ANIM_rotate_begin	1	0	0	ptaxi/anim/tire_sense
 			ANIM_rotate_key	0	0
 			ANIM_rotate_key	1	-49.03367192
 			ANIM_rotate_end
@@ -79855,12 +79855,12 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 				ANIM_rotate	0	0	-1	0	0
 				ANIM_rotate	1	0	0	-0.00000011	-0.00000011
 				# translation keyframes
-				ANIM_trans_begin	bp/anim/tire_sense
+				ANIM_trans_begin	ptaxi/anim/tire_sense
 				ANIM_trans_key	0	0.20282173	0.3732051	1.03126514
 				ANIM_trans_key	1	0.20282173	0.37375447	1.03135145
 				ANIM_trans_end
 				# rotation keyframes
-				ANIM_rotate_begin	1	0	0	bp/anim/tire_sense
+				ANIM_rotate_begin	1	0	0	ptaxi/anim/tire_sense
 				ANIM_rotate_key	0	-0.27912251
 				ANIM_rotate_key	1	23.06767985
 				ANIM_rotate_end
@@ -79884,12 +79884,12 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 			# static rotation
 			ANIM_rotate	1	0	0	179.99999135	179.99999135
 			# translation keyframes
-			ANIM_trans_begin	bp/anim/tire_sense
+			ANIM_trans_begin	ptaxi/anim/tire_sense
 			ANIM_trans_key	0	0.39566803	0.24791847	0.77837157
 			ANIM_trans_key	1	0.39537901	0.24820751	0.77779353
 			ANIM_trans_end
 			# rotation keyframes
-			ANIM_rotate_begin	1	0	0	bp/anim/tire_sense
+			ANIM_rotate_begin	1	0	0	ptaxi/anim/tire_sense
 			ANIM_rotate_key	0	0.0971731
 			ANIM_rotate_key	1	-24.58967993
 			ANIM_rotate_end
@@ -79912,21 +79912,21 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 	ANIM_rotate	0	0	-1	-89.99999567	-89.99999567
 	ANIM_rotate	1	0	0	-89.99998201	-89.99998201
 	# rotation keyframes
-	ANIM_rotate_begin	0	1	0	bp/anim/front_steer
+	ANIM_rotate_begin	0	1	0	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	0.00000216
 	ANIM_rotate_key	0.25	0.00000108
 	ANIM_rotate_key	0.5	0
 	ANIM_rotate_key	0.75	0.00000108
 	ANIM_rotate_key	1	0.00000216
 	ANIM_rotate_end
-	ANIM_rotate_begin	0	0	-1	bp/anim/front_steer
+	ANIM_rotate_begin	0	0	-1	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	0.00000375
 	ANIM_rotate_key	0.25	0.00000187
 	ANIM_rotate_key	0.5	0
 	ANIM_rotate_key	0.75	-0.00000187
 	ANIM_rotate_key	1	-0.00000375
 	ANIM_rotate_end
-	ANIM_rotate_begin	1	0	0	bp/anim/front_steer
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	60.00000167
 	ANIM_rotate_key	0.25	30.00000083
 	ANIM_rotate_key	0.5	0
@@ -79942,7 +79942,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 		ANIM_rotate	0	0	-1	0.0000025	0.0000025
 		ANIM_rotate	1	0	0	-0.00000171	-0.00000171
 		# rotation keyframes
-		ANIM_rotate_begin	0	0	-1	bp/anim/front_drive
+		ANIM_rotate_begin	0	0	-1	ptaxi/anim/front_drive
 		ANIM_rotate_key	0	0
 		ANIM_rotate_key	0.25	-90.0000025
 		ANIM_rotate_key	0.5	-180.00000501
@@ -79965,21 +79965,21 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 	ANIM_rotate	0	0	-1	-89.99999567	-89.99999567
 	ANIM_rotate	1	0	0	90.0000025	90.0000025
 	# rotation keyframes
-	ANIM_rotate_begin	0	1	0	bp/anim/front_steer
+	ANIM_rotate_begin	0	1	0	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	0.00000216
 	ANIM_rotate_key	0.25	0.00000108
 	ANIM_rotate_key	0.5	0
 	ANIM_rotate_key	0.75	0.00000108
 	ANIM_rotate_key	1	0.00000216
 	ANIM_rotate_end
-	ANIM_rotate_begin	0	0	-1	bp/anim/front_steer
+	ANIM_rotate_begin	0	0	-1	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	0.00000375
 	ANIM_rotate_key	0.25	0.00000187
 	ANIM_rotate_key	0.5	0
 	ANIM_rotate_key	0.75	-0.00000187
 	ANIM_rotate_key	1	-0.00000375
 	ANIM_rotate_end
-	ANIM_rotate_begin	1	0	0	bp/anim/front_steer
+	ANIM_rotate_begin	1	0	0	ptaxi/anim/front_steer
 	ANIM_rotate_key	0	60.00000167
 	ANIM_rotate_key	0.25	30.00000083
 	ANIM_rotate_key	0.5	0
@@ -79995,7 +79995,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 		ANIM_rotate	0	0	-1	0.00000433	0.00000433
 		ANIM_rotate	1	0	0	0	0
 		# rotation keyframes
-		ANIM_rotate_begin	0	0	-1	bp/anim/front_drive
+		ANIM_rotate_begin	0	0	-1	ptaxi/anim/front_drive
 		ANIM_rotate_key	0	0
 		ANIM_rotate_key	0.25	90.0000025
 		ANIM_rotate_key	0.5	180.00001867
@@ -80049,7 +80049,7 @@ TRIS	58452 1152
 TRIS	27504 846
 # 1 Object: Cab cradle lights - night light
 ANIM_begin
-ANIM_hide	0	0	bp/anim/cradle_lights
+ANIM_hide	0	0	ptaxi/anim/cradle_lights
 # PRIMITIVE: Cab cradle lights - night light	weight: 2
 # MATERIAL: Black fenders
 TRIS	2793 60
@@ -80068,19 +80068,19 @@ TRIS	30012 360
 TRIS	25536 960
 	# 2 Object: Left front light (core)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Left front light (core)	weight: 10000
 	LIGHT_PARAM	airplane_generic_core -0.3345601 0.36370641 -3.39668012 0 0 0.25 1 0.6
 	ANIM_end
 	# 2 Object: Left front light (flare)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Left front light (flare)	weight: 10000
 	LIGHT_PARAM	airplane_generic_flare -0.3345601 0.36370641 -3.39668012 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Left front light (glow)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Left front light (glow)	weight: 10000
 	LIGHT_PARAM	airplane_generic_glow -0.3345601 0.36370641 -3.39668012 0 0 0.25 1 2
 	ANIM_end
@@ -80089,19 +80089,19 @@ TRIS	25536 960
 	LIGHT_PARAM	full_custom_halo_night -0.3345601 0.35092628 -3.39668012 1 1 1 1 50 -0.2 -0.5 -1 0.8
 	# 2 Object: Right front light (core)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Right front light (core)	weight: 10000
 	LIGHT_PARAM	airplane_generic_core 0.66410571 0.36370641 -3.39668012 0 0 0.25 1 0.6
 	ANIM_end
 	# 2 Object: Right front light (flare)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Right front light (flare)	weight: 10000
 	LIGHT_PARAM	airplane_generic_flare 0.66410571 0.36370641 -3.39668012 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Right front light (glow)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Right front light (glow)	weight: 10000
 	LIGHT_PARAM	airplane_generic_glow 0.66410571 0.36370641 -3.39668012 0 0 0.25 1 2
 	ANIM_end
@@ -80122,7 +80122,7 @@ TRIS	36366 1209
 TRIS	2241 552
 	# 2 Object: Left cab cradle light (core)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Left cab cradle light (core)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.53879225 1.22610998 -1.87463999 -0.53879225 1.22610998 -1.87463999 0 0 no_ref
@@ -80132,7 +80132,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 	ANIM_end
 	# 2 Object: Left cab cradle light (flare)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Left cab cradle light (flare)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.53879225 1.22610998 -1.87463999 -0.53879225 1.22610998 -1.87463999 0 0 no_ref
@@ -80142,7 +80142,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Left cab cradle light (glow)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Left cab cradle light (glow)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -0.53879225 1.22610998 -1.87463999 -0.53879225 1.22610998 -1.87463999 0 0 no_ref
@@ -80152,13 +80152,13 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Left cab cradle light (spill)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Left cab cradle light (spill)	weight: 10000
 	LIGHT_PARAM	full_custom_halo_night -0.53879225 1.22610998 -1.87463999 1 1 1 1 8 1 0.5 1 0.6
 	ANIM_end
 	# 2 Object: Right cab cradle light (core)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Right cab cradle light (core)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.8680256 1.22610986 -1.87463999 0.8680256 1.22610986 -1.87463999 0 0 no_ref
@@ -80168,7 +80168,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.5
 	ANIM_end
 	# 2 Object: Right cab cradle light (flare)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Right cab cradle light (flare)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.8680256 1.22610986 -1.87463999 0.8680256 1.22610986 -1.87463999 0 0 no_ref
@@ -80178,7 +80178,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Right cab cradle light (glow)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Right cab cradle light (glow)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 0.8680256 1.22610986 -1.87463999 0.8680256 1.22610986 -1.87463999 0 0 no_ref
@@ -80188,13 +80188,13 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Right cab cradle light (spill)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/cradle_lights
+	ANIM_hide	0	0	ptaxi/anim/cradle_lights
 	# LIGHT: Right cab cradle light (spill)	weight: 10000
 	LIGHT_PARAM	full_custom_halo_night 0.8680256 1.22610986 -1.87463999 1 1 1 1 8 -1 0.5 1   0.6
 	ANIM_end
 # 1 Object: Cab cradle lights - night light.001
 ANIM_begin
-ANIM_hide	0	0	bp/anim/reverse_lights
+ANIM_hide	0	0	ptaxi/anim/reverse_lights
 # PRIMITIVE: Cab cradle lights - night light.001	weight: 2
 # MATERIAL: Black fenders
 TRIS	2853 60
@@ -80205,7 +80205,7 @@ ANIM_end
 TRIS	44535 24
 	# 2 Object: Left rear light (custom)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Left rear light (custom)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -1.31429052 0.1130899 3.45436382 -1.31429052 0.1130899 3.45436382 0 0 no_ref
@@ -80218,7 +80218,7 @@ LIGHT_PARAM airplane_nav_left_size 0 0 0 0.5 1
 	LIGHT_PARAM	full_custom_halo_night -1.31429052 0.1185567 3.45436382 1 0 0 1 10 0 0 1 0.7
 	# 2 Object: Left reverse light (core)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Left reverse light (core)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -1.3612504 0.22827522 3.45781446 -1.3612504 0.22827522 3.45781446 0 0 no_ref
@@ -80228,7 +80228,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.6
 	ANIM_end
 	# 2 Object: Left reverse light (flare)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Left reverse light (flare)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -1.3612504 0.22827522 3.45781446 -1.3612504 0.22827522 3.45781446 0 0 no_ref
@@ -80238,7 +80238,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Left reverse light (glow)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Left reverse light (glow)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans -1.3612504 0.22827522 3.45781446 -1.3612504 0.22827522 3.45781446 0 0 no_ref
@@ -80248,13 +80248,13 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Left reverse light (spill)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Left reverse light (spill)	weight: 10000
 	LIGHT_PARAM	full_custom_halo -1.3612504 0.23381495 3.45781446 1 1 1 1 25 0 -0.4 1 0.7
 	ANIM_end
 	# 2 Object: Right rear light (custom)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/vehicle_lights
+	ANIM_hide	0	0	ptaxi/anim/vehicle_lights
 	# LIGHT: Right rear light (custom)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 1.31392336 0.11308996 3.45436478 1.31392336 0.11308996 3.45436478 0 0 no_ref
@@ -80267,7 +80267,7 @@ LIGHT_PARAM airplane_nav_left_size 0 0 0 0.5 1
 	LIGHT_PARAM	full_custom_halo_night 1.31392336 0.11855675 3.45436478 1 0 0 1 10 0 0 1 0.7
 	# 2 Object: Right reverse light (core)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Right reverse light (core)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 1.36340904 0.22827522 3.45781422 1.36340904 0.22827522 3.45781422 0 0 no_ref
@@ -80277,7 +80277,7 @@ LIGHT_PARAM airplane_generic_core 0 0 0 0 0 0.25 1 0.6
 	ANIM_end
 	# 2 Object: Right reverse light (flare)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Right reverse light (flare)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 1.36340904 0.22827522 3.45781422 1.36340904 0.22827522 3.45781422 0 0 no_ref
@@ -80287,7 +80287,7 @@ LIGHT_PARAM airplane_generic_flare 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Right reverse light (glow)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Right reverse light (glow)	weight: 10000
 ## UNFUCKERY BEGIN ##
 ANIM_trans 1.36340904 0.22827522 3.45781422 1.36340904 0.22827522 3.45781422 0 0 no_ref
@@ -80297,7 +80297,7 @@ LIGHT_PARAM airplane_generic_glow 0 0 0 0 0 0.25 1 2
 	ANIM_end
 	# 2 Object: Right reverse light (spill)
 	ANIM_begin
-	ANIM_hide	0	0	bp/anim/reverse_lights
+	ANIM_hide	0	0	ptaxi/anim/reverse_lights
 	# LIGHT: Right reverse light (spill)	weight: 10000
 	LIGHT_PARAM	full_custom_halo 1.36340904 0.23381495 3.45781422 1 1 1 1 25 0 -0.4 1 0.7
 	ANIM_end
@@ -80324,11 +80324,11 @@ TRIS	3093 210
 # 1 Object: Centerbody moving plenum
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/lift
+ANIM_trans_begin	ptaxi/anim/lift
 ANIM_trans_key	0	0	0.32307121	-0.1435966
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	1	0	0	bp/anim/lift
+ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 ANIM_rotate_key	0	0
 ANIM_rotate_key	1	-6.86366265
 ANIM_rotate_end
@@ -80383,11 +80383,11 @@ TRIS	43335 1200
 # 1 Object: Front lift piston fixed.001
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/lift
+ANIM_trans_begin	ptaxi/anim/lift
 ANIM_trans_key	0	-0.01767187	0.1037067	1.0761621
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	1	0	0	bp/anim/lift
+ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 ANIM_rotate_key	0	75.6366611
 ANIM_rotate_key	0.5	70.90987649
 ANIM_rotate_key	1	67.28090819
@@ -80399,11 +80399,11 @@ ANIM_end
 # 1 Object: Front lift piston fixed
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/lift
+ANIM_trans_begin	ptaxi/anim/lift
 ANIM_trans_key	0	-0.01767187	0.1037067	1.72601151
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	1	0	0	bp/anim/lift
+ANIM_rotate_begin	1	0	0	ptaxi/anim/lift
 ANIM_rotate_key	0	0.25411116
 ANIM_rotate_key	0.5	5.18248671
 ANIM_rotate_key	1	8.44246215
@@ -80423,11 +80423,11 @@ TRIS	41676 768
 # 1 Object: Rear wheel hub
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/rear_drive
+ANIM_trans_begin	ptaxi/anim/rear_drive
 ANIM_trans_key	0	-0.84197617	0.00833627	2.90943003
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	1	0	0	bp/anim/rear_drive
+ANIM_rotate_begin	1	0	0	ptaxi/anim/rear_drive
 ANIM_rotate_key	0	0
 ANIM_rotate_key	0.25	-90.0000025
 ANIM_rotate_key	0.5	-180.00000501
@@ -80478,11 +80478,11 @@ TRIS	58284 84
 # 1 Object: Cab chair
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/driver_orientation
+ANIM_trans_begin	ptaxi/anim/driver_orientation
 ANIM_trans_key	0	0.16333422	0.16405144	-2.45108938
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	0	1	0	bp/anim/driver_orientation
+ANIM_rotate_begin	0	1	0	ptaxi/anim/driver_orientation
 ANIM_rotate_key	0	0
 ANIM_rotate_key	0.5	-90.0000025
 ANIM_rotate_key	1	-180.00001867
@@ -80492,8 +80492,8 @@ ANIM_rotate_end
 TRIS	783 1098
 	# 2 Object: Driver torso
 	ANIM_begin
- ANIM_hide 1 1 bp/anim/clear_signal
-	ANIM_hide	-1	-1	bp/anim/clear_signal
+ ANIM_hide 1 1 ptaxi/anim/clear_signal
+	ANIM_hide	-1	-1	ptaxi/anim/clear_signal
 	# PRIMITIVE: Driver torso	weight: 5
 	# MATERIAL: Flesh
 	ATTR_shiny_rat	0.5
@@ -80539,8 +80539,8 @@ TRIS	28350 408
 TRIS	13425 570
 # 1 Object: Driver torso (clear left)
 ANIM_begin
-ANIM_hide	-1	1	bp/anim/clear_signal
-ANIM_show	-1	-1	bp/anim/clear_signal
+ANIM_hide	-1	1	ptaxi/anim/clear_signal
+ANIM_show	-1	-1	ptaxi/anim/clear_signal
 # PRIMITIVE: Driver torso (clear left)	weight: 5
 # MATERIAL: Flesh
 ATTR_shiny_rat	0.5
@@ -80575,8 +80575,8 @@ TRIS	12183 552
 ANIM_end
 # 1 Object: Driver torso (clear right)
 ANIM_begin
-ANIM_hide	-1	1	bp/anim/clear_signal
-ANIM_show	1	1	bp/anim/clear_signal
+ANIM_hide	-1	1	ptaxi/anim/clear_signal
+ANIM_show	1	1	ptaxi/anim/clear_signal
 # PRIMITIVE: Driver torso (clear right)	weight: 5
 # MATERIAL: Flesh
 TRIS	12735 552
@@ -80611,11 +80611,11 @@ ANIM_end
 # 1 Object: Rear wheel
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/rear_drive
+ANIM_trans_begin	ptaxi/anim/rear_drive
 ANIM_trans_key	0	-0.84197617	0.00833627	2.90943003
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	1	0	0	bp/anim/rear_drive
+ANIM_rotate_begin	1	0	0	ptaxi/anim/rear_drive
 ANIM_rotate_key	0	0
 ANIM_rotate_key	0.25	-90.0000025
 ANIM_rotate_key	0.5	-180.00001867
@@ -80630,16 +80630,16 @@ ANIM_end
 # 1 Object: Cab door
 ANIM_begin
 # translation keyframes
-ANIM_trans_begin	bp/anim/clear_signal
+ANIM_trans_begin	ptaxi/anim/clear_signal
 ANIM_trans_key	-1	0.81500006	0.39546877	-2.27640629
 ANIM_trans_end
 # rotation keyframes
-ANIM_rotate_begin	0	0	-1	bp/anim/clear_signal
+ANIM_rotate_begin	0	0	-1	ptaxi/anim/clear_signal
 ANIM_rotate_key	-1	89.99999567
 ANIM_rotate_key	0	90.0000025
 ANIM_rotate_key	1	89.99999567
 ANIM_rotate_end
-ANIM_rotate_begin	1	0	0	bp/anim/clear_signal
+ANIM_rotate_begin	1	0	0	ptaxi/anim/clear_signal
 ANIM_rotate_key	-1	53.00000034
 ANIM_rotate_key	0	0
 ANIM_rotate_key	1	53.00000034
@@ -80706,25 +80706,25 @@ TRIS	28932 1080
 TRIS	3009 60
 # 1 Object: Right hazard light
 ANIM_begin
-ANIM_hide	0	0	bp/anim/hazard_lights
+ANIM_hide	0	0	ptaxi/anim/hazard_lights
 # LIGHT: Right hazard light	weight: 10000
 LIGHT_PARAM	airplane_beacon_rotate 0.94416726 1.25301731 -3.03224635 1.21 0.2
 ANIM_end
 # 1 Object: Left hazard light
 ANIM_begin
-ANIM_hide	0	0	bp/anim/hazard_lights
+ANIM_hide	0	0	ptaxi/anim/hazard_lights
 # LIGHT: Left hazard light	weight: 10000
 LIGHT_PARAM	airplane_beacon_rotate -0.609869 1.25301731 -3.03224635 1.2 0
 ANIM_end
 # 1 Object: Right hazard light (spill)
 ANIM_begin
-ANIM_hide	0	0	bp/anim/hazard_lights
+ANIM_hide	0	0	ptaxi/anim/hazard_lights
 # LIGHT: Right hazard light (spill)	weight: 10000
 LIGHT_PARAM	airplane_beacon_rotate_sp 0.94568598 1.25301731 -3.03224635 1.21 0 50 0.6
 ANIM_end
 # 1 Object: Left hazard light (spill)
 ANIM_begin
-ANIM_hide	0	0	bp/anim/hazard_lights
+ANIM_hide	0	0	ptaxi/anim/hazard_lights
 # LIGHT: Left hazard light (spill)	weight: 10000
 LIGHT_PARAM	airplane_beacon_rotate_sp -0.609869 1.25301731 -3.03224635 1.2 0 50 0.6
 ANIM_end

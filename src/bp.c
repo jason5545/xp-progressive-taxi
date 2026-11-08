@@ -965,13 +965,13 @@ acf_on_gnd_stopped(const char **reason)
 void
 bp_boot_init(void)
 {
-	disco_cmd = XPLMCreateCommand("BetterPushback/disconnect",
+	disco_cmd = XPLMCreateCommand("ProgressiveTaxi/disconnect",
 	    _("Disconnect tow + headset and switch to hand signals."));
-	recon_cmd = XPLMCreateCommand("BetterPushback/reconnect",
+	recon_cmd = XPLMCreateCommand("ProgressiveTaxi/reconnect",
 	    _("Reconnect tow and await further instructions."));
 
 	DCR_CREATE_F(NULL, &bp.anim.nosewheel_rot_spd, false,
-	    "bp/anim/nosewheel_rotation_speed_rad_sec");
+	    "ptaxi/anim/nosewheel_rotation_speed_rad_sec");
 }
 
 void

@@ -132,7 +132,7 @@ typedef struct {
  * or the first segment). This allows us to store and retrieve previously used
  * driving instructions so the user doesn't have to keep re-entering them if
  * they repeatedly push back from the same starting positions.
- * This table is stored in Output/caches/BetterPushback_routes.dat as
+ * This table is stored in Output/caches/ProgressiveTaxi_routes.dat as
  * a text file. See routes_store for details on the format.
  */
 typedef struct {

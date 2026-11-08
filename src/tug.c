@@ -150,41 +150,41 @@ typedef struct {
  */
 
 static anim_info_t anim[TUG_NUM_ANIMS] = {
-    { .name = "bp/anim/front_drive" },
-    { .name = "bp/anim/front_steer" },
-    { .name = "bp/anim/rear_drive" },
-    { .name = "bp/anim/lift" },
-    { .name = "bp/anim/lift_arm" },
-    { .name = "bp/anim/tire_sense" },
-    { .name = "bp/anim/vehicle_lights" },
-    { .name = "bp/anim/cradle_lights" },
-    { .name = "bp/anim/reverse_lights" },
-    { .name = "bp/anim/hazard_lights" },
-    { .name = "bp/anim/driver_orientation" },
-    { .name = "bp/anim/cab_position" },
-    { .name = "bp/anim/winch_on" },
-    { .name = "bp/anim/clear_signal" },
-    { .name = "bp/anim/lift_in_transit" },
-    { .name = "bp/anim/beacon_flash" }
+    { .name = "ptaxi/anim/front_drive" },
+    { .name = "ptaxi/anim/front_steer" },
+    { .name = "ptaxi/anim/rear_drive" },
+    { .name = "ptaxi/anim/lift" },
+    { .name = "ptaxi/anim/lift_arm" },
+    { .name = "ptaxi/anim/tire_sense" },
+    { .name = "ptaxi/anim/vehicle_lights" },
+    { .name = "ptaxi/anim/cradle_lights" },
+    { .name = "ptaxi/anim/reverse_lights" },
+    { .name = "ptaxi/anim/hazard_lights" },
+    { .name = "ptaxi/anim/driver_orientation" },
+    { .name = "ptaxi/anim/cab_position" },
+    { .name = "ptaxi/anim/winch_on" },
+    { .name = "ptaxi/anim/clear_signal" },
+    { .name = "ptaxi/anim/lift_in_transit" },
+    { .name = "ptaxi/anim/beacon_flash" }
 };
 
 static const char *tug_dr_list[TUG_NUM_ANIMS + 1] = {
-    "bp/anim/front_drive",
-    "bp/anim/front_steer",
-    "bp/anim/rear_drive",
-    "bp/anim/lift",
-    "bp/anim/lift_arm",
-    "bp/anim/tire_sense",
-    "bp/anim/vehicle_lights",
-    "bp/anim/cradle_lights",
-    "bp/anim/reverse_lights",
-    "bp/anim/hazard_lights",
-    "bp/anim/driver_orientation",
-    "bp/anim/cab_position",
-    "bp/anim/winch_on",
-    "bp/anim/clear_signal",
-    "bp/anim/lift_in_transit",
-    "bp/anim/beacon_flash",
+    "ptaxi/anim/front_drive",
+    "ptaxi/anim/front_steer",
+    "ptaxi/anim/rear_drive",
+    "ptaxi/anim/lift",
+    "ptaxi/anim/lift_arm",
+    "ptaxi/anim/tire_sense",
+    "ptaxi/anim/vehicle_lights",
+    "ptaxi/anim/cradle_lights",
+    "ptaxi/anim/reverse_lights",
+    "ptaxi/anim/hazard_lights",
+    "ptaxi/anim/driver_orientation",
+    "ptaxi/anim/cab_position",
+    "ptaxi/anim/winch_on",
+    "ptaxi/anim/clear_signal",
+    "ptaxi/anim/lift_in_transit",
+    "ptaxi/anim/beacon_flash",
     NULL
 };
 
@@ -985,7 +985,7 @@ tug_glob_init(void)
 
 	fdr_find(&sun_pitch_dr, "sim/graphics/scenery/sun_pitch_degrees");
 
-	tug_reload_cmd = XPLMCreateCommand("BetterPushback/reload_tug",
+	tug_reload_cmd = XPLMCreateCommand("ProgressiveTaxi/reload_tug",
 	     "Reload tug model");
 	XPLMRegisterCommandHandler(tug_reload_cmd, reload_tug_handler, 0, NULL);
 

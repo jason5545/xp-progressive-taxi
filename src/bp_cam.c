@@ -1011,11 +1011,11 @@ key_sniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *refcon)
 	case XPLM_VK_RETURN:
 	case XPLM_VK_ENTER:
 	case XPLM_VK_NUMPAD_ENT:
-		XPLMCommandOnce(XPLMFindCommand("BetterPushback/stop_planner"));
+		XPLMCommandOnce(XPLMFindCommand("ProgressiveTaxi/stop_planner"));
 		return (0);
 	case XPLM_VK_ESCAPE:
 		bp_delete_all_segs();
-		XPLMCommandOnce(XPLMFindCommand("BetterPushback/stop_planner"));
+		XPLMCommandOnce(XPLMFindCommand("ProgressiveTaxi/stop_planner"));
 		return (0);
 	case XPLM_VK_CLEAR:
 	case XPLM_VK_BACK:
@@ -1031,7 +1031,7 @@ key_sniffer(char inChar, XPLMKeyFlags inFlags, char inVirtualKey, void *refcon)
 	case XPLM_VK_SPACE:
 		bp_delete_all_segs();
 		XPLMCommandOnce(XPLMFindCommand(
-		    "BetterPushback/connect_first"));
+		    "ProgressiveTaxi/connect_first"));
 		return (0);
 	}
 
@@ -1103,7 +1103,7 @@ bp_cam_start(void)
 	cam_lamp_obj = XPLMLoadObject(cam_obj_path);
 	if (cam_lamp_obj == NULL) {
 		logMsg("Error loading pushback lamp %s. Please reinstall "
-		    "BetterPushback.", cam_obj_path);
+		    "ProgressiveTaxi.", cam_obj_path);
 		free(cam_obj_path);
 		return (B_FALSE);
 	}

@@ -478,7 +478,7 @@ xlate_wedroutes(void)
 		earthwed = mkpathname(bp_xpdir, "Custom Scenery",
 		    de->d_name, "earth.wed.xml", NULL);
 		routefile = mkpathname(bp_xpdir, "Custom Scenery",
-		    de->d_name, "BetterPushback_routes.dat", NULL);
+		    de->d_name, "ProgressiveTaxi_routes.dat", NULL);
 		exists = file_exists(routefile, NULL);
 		if (!file_exists(earthwed, NULL))
 			goto done;

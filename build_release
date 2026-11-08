@@ -17,6 +17,10 @@
 
 CMAKE_OPTS_COMMON="-DCMAKE_BUILD_TYPE=Release"
 
+# Distribution folder / plugin name. Renamed from BetterPushback so both can
+# be installed side-by-side (see AGENTS.md).
+DIST="ProgressiveTaxi"
+
 DIST_FILES=(
     'COPYING'					''
     'data/msgs/README.txt'			''
@@ -40,8 +44,8 @@ function install_xtra_file() {
 	if [[ "$DSTDIR" = "" ]]; then
 		DSTDIR="$(dirname "$FILE")"
 	fi
-	mkdir -p "BetterPushback/$DSTDIR"
-	$XFERCMD "$FILE" "BetterPushback/$DSTDIR/$TGTFILE"
+	mkdir -p "$DIST/$DSTDIR"
+	$XFERCMD "$FILE" "$DIST/$DSTDIR/$TGTFILE"
 }
 
 function install_xtra_files() {
@@ -142,8 +146,8 @@ EOF
 	esac
 done
 
-rm -rf BetterPushback
-mkdir -p BetterPushback
+rm -rf "$DIST"
+mkdir -p "$DIST"
 
 set -e
 
@@ -162,19 +166,24 @@ Linux)
 	( cd src && rm -f CMakeCache.txt && \
 	    cmake $CMAKE_OPTS_COMMON -DCMAKE_TOOLCHAIN_FILE=XCompile.cmake \
 	    -DHOST=x86_64-w64-mingw32 . && make clean && make -j${NCPUS} &&
-	    rm -f libBetterPushback.xpl.dll.a )
+	    rm -f libProgressiveTaxi.xpl.dll.a )
 	( cd src && rm -f CMakeCache.txt && cmake $CMAKE_OPTS_COMMON . \
 	    && make clean && make -j${NCPUS} )
-	strip {win_x64,lin_x64}/BetterPushback.xpl
-	cp -r {win_x64,lin_x64} BetterPushback
+	strip {win_x64,lin_x64}/ProgressiveTaxi.xpl
+	cp -r {win_x64,lin_x64} "$DIST"
 	;;
 Darwin)
-	( cd src && rm -f CMakeCache.txt && cmake $CMAKE_OPTS_COMMON . \
+	# MACOSX_DEPLOYMENT_TARGET is set by tools/build-mac.sh; default 12.0.
+	( cd src && rm -f CMakeCache.txt && cmake $CMAKE_OPTS_COMMON \
+	    -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-12.0}" . \
 	    && make clean && make -j${NCPUS} )
 	if [ -n "$notarize" ]; then
 		make -f notarize/notarize.make notarize
 	fi
-	cp -r mac_x64 BetterPushback
+	# Copy only our own binary: a stale BetterPushback.xpl left in
+	# mac_x64 by an older build must never end up next to it.
+	mkdir -p "$DIST/mac_x64"
+	cp mac_x64/ProgressiveTaxi.xpl "$DIST/mac_x64/"
 	;;
 *)
 	echo "Unsupported platform" >&2

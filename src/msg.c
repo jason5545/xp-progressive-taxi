@@ -247,7 +247,7 @@ msg_init(const char *my_lang, const char *icao, lang_pref_t lang_pref)
 		    "msgs", msg_dir_name, msgs[msg].filename, NULL);
 		msgs[msg].wav = wav_load(path, msgs[msg].filename, alc);
 		if (msgs[msg].wav == NULL) {
-			logMsg("BetterPushback initialization error, unable "
+			logMsg("ProgressiveTaxi initialization error, unable "
 			    "to load sound file %s (prefdir: %s)", path,
 			    msg_dir_name);
 			free(path);

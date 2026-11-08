@@ -99,7 +99,8 @@ add_definitions("-DCHECK_RESULT_USED=__attribute__((warn_unused_result))")
 
 # Yes, we need to strip a trailing newline from command output. CMake is
 # "smart" like that...
-execute_process(COMMAND git describe --abbrev=0 --tags
+execute_process(COMMAND git describe --tags --always --dirty
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE BP_PLUGIN_VERSION)
 string(REGEX REPLACE "\n$" "" BP_PLUGIN_VERSION "${BP_PLUGIN_VERSION}")
 
@@ -230,4 +231,4 @@ set_target_properties(bp PROPERTIES RUNTIME_OUTPUT_DIRECTORY
     "${CMAKE_SOURCE_DIR}/../${PLUGIN_BIN_OUTDIR}")
 set_target_properties(bp PROPERTIES LIBRARY_OUTPUT_DIRECTORY
     "${CMAKE_SOURCE_DIR}/../${PLUGIN_BIN_OUTDIR}")
-set_target_properties(bp PROPERTIES OUTPUT_NAME "BetterPushback.xpl")
+set_target_properties(bp PROPERTIES OUTPUT_NAME "ProgressiveTaxi.xpl")
