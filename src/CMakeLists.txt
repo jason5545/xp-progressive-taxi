@@ -52,8 +52,15 @@ file(GLOB LIBOGG_PREFIX "${LIBACFUTILS}/opus/libogg-${PLAT_LONG}/install")
 file(GLOB OPENSSL_PREFIX "${LIBACFUTILS}/ssl/openssl-${PLAT_LONG}")
 file(GLOB ICONV_PREFIX "${LIBACFUTILS}/libiconv/libiconv-${PLAT_LONG}")
 
-file(GLOB SRC *.c)
-file(GLOB HDR *.h)
+file(GLOB SRC *.c planner/*.c)
+file(GLOB HDR *.h planner/*.h)
+
+# The planner core (and compute_segs) is shared with tools/plan_cli and is
+# checked against the Python prototype bit for bit; keep the compiler from
+# fusing multiply-adds so the plugin computes exactly what the CLI does.
+file(GLOB PLANNER_SRC planner/*.c)
+set_source_files_properties(${PLANNER_SRC} segs.c PROPERTIES
+    COMPILE_FLAGS "-ffp-contract=off")
 
 set(ALL_SRC ${SRC} ${HDR})
 list(SORT ALL_SRC)

@@ -505,7 +505,8 @@ class Graph:
         for gx in range(int(math.floor((p[0] - R) / c)), int(math.floor((p[0] + R) / c)) + 1):
             for gy in range(int(math.floor((p[1] - R) / c)), int(math.floor((p[1] + R) / c)) + 1):
                 res.update(self.grid.get((gx, gy), ()))
-        return [self.edges[i] for i in res if seg_dist(p, self.edges[i]["A"], self.edges[i]["B"])[0] <= R]
+        # 依邊的編號排序，讓走訪順序固定（C 版照同一順序，對拍才能逐筆一致）
+        return [self.edges[i] for i in sorted(res) if seg_dist(p, self.edges[i]["A"], self.edges[i]["B"])[0] <= R]
 
     def nearest_taxi(self, p, R=60.0, exclude_leadin=False):
         best = (1e18, None, None)
@@ -548,8 +549,13 @@ def cls_ok(edge_cls, ac_cls):
     return CLS_ORDER.index(edge_cls) >= CLS_ORDER.index(ac_cls)
 
 
+def nrw(name):
+    """跑道名稱正規化：apt.dat 有的寫 1R、有的寫 01R（KSFO）。"""
+    return re.sub(r"^0+(?=\d)", "", name.strip().upper())
+
+
 def rwy_tokens(name):
-    return set(t for t in re.split(r"[/\s,\-]+", name.strip()) if t)
+    return set(nrw(t) for t in re.split(r"[/\s,\-]+", name.strip()) if t)
 
 
 def recip(rw):
@@ -586,7 +592,7 @@ def runway_ends(ap, g):
             re_.u = r["u"] if i == 0 else neg(r["u"])
             re_.len = r["len"]
             re_.width = r["width"]
-            re_.pair = {r["ends"][0][0], r["ends"][1][0]}
+            re_.pair = {nrw(r["ends"][0][0]), nrw(r["ends"][1][0])}
             re_.hdg = dir2hdg(re_.u)
             rw_edges = [e for e in g.edges if e["kind"] == "runway" and rwy_tokens(e["name"]) & re_.pair]
             re_.rw_edges = set(e["id"] for e in rw_edges)
@@ -594,6 +600,7 @@ def runway_ends(ap, g):
             for e in rw_edges:
                 nodes.add(e["a"])
                 nodes.add(e["b"])
+            nodes = sorted(nodes)
             re_.target = None
             re_.target_along = None
             re_.end_along = None
@@ -617,7 +624,7 @@ def runway_ends(ap, g):
 def edge_zone_rwys(e):
     s = set()
     for kind, rws in e["zones"]:
-        s.update(rws)
+        s.update(nrw(r) for r in rws)
     return s
 
 
@@ -911,7 +918,7 @@ def describe_route(g, ap, start_did, seq, rend, ac_wb):
         if nm and (not names or names[-1] != nm):
             names.append(nm)
         zr = edge_zone_rwys(e)
-        is_target = (e["kind"] == "runway" and eid in rend.rw_edges) or (zr & rend.pair and e["kind"] == "taxiway" and any(k == "departure" or k == "ils" for k, rws in e["zones"] if set(rws) & rend.pair))
+        is_target = (e["kind"] == "runway" and eid in rend.rw_edges) or (zr & rend.pair and e["kind"] == "taxiway" and any(k == "departure" or k == "ils" for k, rws in e["zones"] if set(nrw(r) for r in rws) & rend.pair))
         if hs_node is None and is_target and i > 0:
             hs_node = f
         if e["kind"] == "runway" and eid in rend.rw_edges:
@@ -961,7 +968,8 @@ def evaluate_airport(ap, fleet, stand_ref, log=print):
                 tables[key] = route_table(g, rend, ac["route_cls"])
             togo, nxt = tables[key]
             best = None
-            for (eid, sgn), c in cands.items():
+            # 固定順序：邊編號遞增，同一條邊先 +1 再 -1（C 版相同）
+            for (eid, sgn), c in sorted(cands.items(), key=lambda kv: (kv[0][0], -kv[0][1])):
                 did = g.de_index.get((eid, sgn))
                 if did is None:
                     continue
@@ -1166,6 +1174,8 @@ def main():
     ap_.add_argument("--fleet", default="class", choices=["class", "b738"])
     ap_.add_argument("--stand-ref", default="nose", choices=["nose", "main"])
     ap_.add_argument("--no-html", action="store_true")
+    ap_.add_argument("--pairs-out", help="逐筆（停機位×跑道端）輸出 JSON，給 C 版對拍")
+    ap_.add_argument("--fleet-out", help="輸出機型參數（給 C 版 plan_cli --fleet 用）")
     a = ap_.parse_args()
     ap = parse_apt(a.apt)
     project(ap)
@@ -1183,7 +1193,53 @@ def main():
         json.dump(S, f, ensure_ascii=False, indent=1)
     if not a.no_html:
         export_html(ap, g, rends, results, S, os.path.join(a.out, tag + ".html"), "%s (%s, %s)" % (a.label, a.fleet, a.stand_ref))
+    if a.pairs_out:
+        dump_pairs(ap, g, results, a.pairs_out)
+    if a.fleet_out:
+        dump_fleet(a.fleet, a.fleet_out)
     print(json.dumps(S, ensure_ascii=False))
+
+
+def dump_fleet(fleet, path):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("mode %s\n" % fleet)
+        for c in (CLS_ORDER if fleet == "class" else "C"):
+            ac = aircraft(c, fleet)
+            span = ac["span"]
+            own = "A" if span < 15 else "B" if span < 24 else "C" if span < 36 else "D" if span < 52 else "E" if span < 65 else "F"
+            f.write("%s %.17g %.17g %s\n" % (c, ac["wheelbase"], ac["max_steer"], own))
+
+
+def dump_pairs(ap, g, results, path):
+    out = []
+    for r in results:
+        st = ap.stands[r["stand"]]
+        base = {"si": r["stand"], "stand": st["name"], "kind": r.get("kind", r.get("status")), "cls": r.get("cls")}
+        if "per" not in r:
+            out.append(dict(base))
+            continue
+        base.update({"ncand": r["ncand"], "dback": r["dnear"] if r["dnear"] != float("inf") else None,
+                     "dfront": r["dfront"] if r["dfront"] != float("inf") else None})
+        for rn, v in r["per"].items():
+            rec = dict(base)
+            rec["rwy"] = rn
+            rec["ok"] = v["ok"]
+            if not v["ok"]:
+                rec["reason"] = v["reason"]
+            else:
+                e = g.edges[v["eid"]]
+                rec.update({
+                    "a": e["a"], "b": e["b"], "sgn": v["sgn"], "x": v["end"][0], "y": v["end"][1],
+                    "hdg": v["end_hdg"], "pb": v["pb_len"], "nseg": v["nseg"], "rot": v["rot"],
+                    "r": v["r_used"] if v["r_used"] != float("inf") else None,
+                    "conf": len(v["conflicts"]), "xing": len(v["xings"]), "taxi": v["taxi"],
+                    "lost": v["entry_lost"], "ft": v["first_turn"], "mt": v["max_turn"],
+                    "cross": v["crossings"], "names": v["names"], "on": v["off_nose"], "tier": tier(v),
+                    "nroute": len(v["route"]),
+                })
+            out.append(rec)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False)
 
 
 if __name__ == "__main__":
