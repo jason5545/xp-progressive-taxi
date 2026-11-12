@@ -696,7 +696,15 @@ XPluginReceiveMessage(XPLMPluginID from, int msg, void *param)
 		/* Force a reinit to re-read aircraft size params */
 		smartcopilot_present = dr_find(&smartcopilot_state,
 		    "scp/api/ismaster");
-		stop_cam_handler(NULL, xplm_CommandEnd, NULL);
+		/*
+		 * Only stop the planner camera if it is actually running.
+		 * stop_cam_handler() calls bp_init() first, and right after a
+		 * load the per-gear on-ground data isn't ready yet, so
+		 * bp_init() would speak "aircraft appears to not have any
+		 * steerable gears" on every aircraft/airport load.
+		 */
+		if (bp_cam_is_running())
+			stop_cam_handler(NULL, xplm_CommandEnd, NULL);
 		bp_fini();
 		cab_view_fini();
 #ifndef	SLAVE_DEBUG
