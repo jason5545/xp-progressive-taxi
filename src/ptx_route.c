@@ -78,7 +78,7 @@ static struct {
 
 	/* X-Plane */
 	dr_t		lat, lon, psi, gs, onground;
-	dr_t		gear_type, gear_deploy, gear_steers, tire_z;
+	dr_t		gear_type, gear_deploy, gear_steers, tire_z, gear_og;
 	dr_t		steer1, steer2;
 } rt;
 
@@ -87,7 +87,7 @@ static struct {
 bool
 ptx_acf_gear(ptx_acf_gear_t *g)
 {
-	int types[10] = { 0 }, steers[10] = { 0 };
+	int types[10] = { 0 }, steers[10] = { 0 }, og[10] = { 0 };
 	double deploy[10] = { 0 }, tz[10] = { 0 };
 	int n = dr_getvi(&rt.gear_type, types, 0, 10);
 	int nw = -1, nm = 0;
@@ -96,9 +96,15 @@ ptx_acf_gear(ptx_acf_gear_t *g)
 	(void) dr_getvi(&rt.gear_steers, steers, 0, 10);
 	(void) dr_getvf(&rt.gear_deploy, deploy, 0, 10);
 	(void) dr_getvf(&rt.tire_z, tz, 0, 10);
-	/* bp.c read_gear_info(): wheels only, the most forward steering one */
+	(void) dr_getvi(&rt.gear_og, og, 0, 10);
+	/*
+	 * bp.c read_gear_info(): deployed wheels touching the ground, the most
+	 * forward steering one. on_ground matters: FF777's gear 2 is a tail
+	 * skid (type 2, deployed, z +19.9 m, off the ground); counting it as
+	 * a main gear made the wheelbase 31.9 m instead of 25.35 m.
+	 */
 	for (int i = 0; i < n && i < 10; i++) {
-		if (types[i] < 2 || deploy[i] == 0)
+		if (types[i] < 2 || deploy[i] == 0 || og[i] == 0)
 			continue;
 		if (steers[i] == 1 && tz[i] < nw_z) {
 			nw = i;
@@ -108,7 +114,7 @@ ptx_acf_gear(ptx_acf_gear_t *g)
 	if (nw < 0)
 		return (false);
 	for (int i = 0; i < n && i < 10; i++) {
-		if (types[i] < 2 || deploy[i] == 0 || i == nw)
+		if (types[i] < 2 || deploy[i] == 0 || og[i] == 0 || i == nw)
 			continue;
 		main_z += tz[i];
 		nm++;
@@ -396,6 +402,7 @@ ptx_route_init(void)
 	fdr_find(&rt.onground, "sim/flightmodel/failures/onground_any");
 	fdr_find(&rt.gear_type, "sim/aircraft/parts/acf_gear_type");
 	fdr_find(&rt.gear_deploy, "sim/aircraft/parts/acf_gear_deploy");
+	fdr_find(&rt.gear_og, "sim/flightmodel2/gear/on_ground");
 	fdr_find(&rt.gear_steers, "sim/aircraft/overflow/acf_gear_steers");
 	fdr_find(&rt.tire_z, "sim/flightmodel/parts/tire_z_no_deflection");
 	fdr_find(&rt.steer1, "sim/aircraft/gear/acf_nw_steerdeg1");

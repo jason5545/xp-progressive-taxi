@@ -146,6 +146,12 @@ y = (lat − ref_lat) × k
 
 LFMN B2 那種弧現在抓不到：它不是被迫縮小的弧，也沒有標 MANUAL。之後在 ProgressiveTaxi 規劃時讀 110 鋪面，用同一套運動學（主輪照拖曳曲線跟，輪緣用 OMGWS／2）檢查主輪，出鋪面的弧標 `MANUAL`。要排除中心線本身就不在鋪面上的地方，不然整段都會被標掉；KSFO 的 East Maintenance Ramp 和 Gate 67／68／69／77／77A 頭 30–100 m 就是這種，apt.dat 沒畫那裡的鋪面。量測腳本在 Safety Pilot repo 的 `prototype/`（`pave.py`）。
 
+### 待辦：777 自動後推推過頭（11/14 實飛）
+
+FF777 在 LFMN 停機位 B2 自動後推到 22L（推完機頭 045°、停在 T、後推 119 m、2 段），兩次都推過頭：主輪停在規劃終點後方約 45 m（第一次 Log 記 40 m、第二次 52 m；第二次是等 `op_complete` 才設停機煞車，確定推完了）。超過 15 m 所以路線沒發布。ATR 在 RCSS 82 正常。原因還沒查：BetterPushback 的段落、拖車和 777 的幾何都可能。紀錄在 Safety Pilot repo 的 `runs/taxi/b777_lfmn_b2.out`。
+
+同一次實飛抓到 `ptx_acf_gear()` 把 FF777 沒著地的尾橇（gear 2，type 2、z +19.9 m）算成主輪，軸距 31.9 m（實際 25.35）：影響 `taxi_route` 的 MANUAL 判定（LFMN T → 22L 的 MANUAL 點 41 → 29）和後推完的距離檢查。已改成只算著地的輪，跟 bp.c read_gear_info 一樣。
+
 ## 驗收怎麼做
 
 - ProgressiveTaxi：`tools/plan_cli/plan_cli route` 輸出跟插件發布的同一組陣列（JSON，鍵名就是 dataref 名稱，數值先轉成 float 再印，跟 dataref 讀到的一樣；`prog_s` 和跟它有關的值是 `prog_s` = 0 時的值；另外多 `turns`、`spans`、`meta` 三個鍵，不是 dataref）。插件和 CLI 都呼叫 `src/planner/ptx_path.c` 的 `ptx_path_build()`。Safety Pilot 的離線測試拿這些 JSON 當固定資料。`--from-pose` 是 `taxi_route` 的規劃（不後推，從停機位滑出）。
