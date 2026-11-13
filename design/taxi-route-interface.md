@@ -133,6 +133,19 @@ y = (lat − ref_lat) × k
 - 控制：以機頭（鼻輪）為參考點跟路徑（駕駛艙在中心線上，跟實際操作一樣，主輪在彎裡會往內切），只寫鼻輪轉向。
 - 交還：踩方向舵、DISENGAGE、AUTO ARM OFF、機頭偏 > 10 m、`active` 變 0、到 `MANUAL` 段之前、起飛對中線接手。
 
+### 參考點用機頭，主輪內切量過（11/13）
+
+777 鼻輪到主輪 25.35 m，機頭貼著 50 m 的弧走，主輪中心往內切 6.9 m，內側輪外緣離中心線約 13 m，超過 23 m 寬直線段的半寬。不過 ICAO Annex 14 3.9.5、3.9.6 就是以「駕駛艙在中心線上」設計，彎道和路口外側另外加寬（fillet）。所以 Safety Pilot 那邊用 apt.dat 的 110 鋪面多邊形直接量（RCSS、RCTP、LFMN、KSFO，照拖曳曲線算主輪軌跡）：
+
+- 機頭當參考點時，ATR 0 個弧出鋪面；777 只有 1 個不重複的弧出鋪面（LFMN 停機位 B2 → 04L／04R，s 211–298，R 55，−90°，內側輪出去 5.76 m）。原因是場景裡一個鋪面島的尖角沒有修圓，跟半徑無關。
+- 參考點往後移（oversteer）救不了那個弧：移到軸距的 0.25 還是出去 1.86 m，而且別的弧外側淨距會變小（LFMN 17 → 04L 鼻輪淨距剩 0.30 m）。
+
+所以參考點維持機頭，駕駛艙在中心線上，跟 Jason 從左座看到的一致。
+
+### 待辦：用鋪面標 MANUAL
+
+LFMN B2 那種弧現在抓不到：它不是被迫縮小的弧，也沒有標 MANUAL。之後在 ProgressiveTaxi 規劃時讀 110 鋪面，用同一套運動學（主輪照拖曳曲線跟，輪緣用 OMGWS／2）檢查主輪，出鋪面的弧標 `MANUAL`。要排除中心線本身就不在鋪面上的地方，不然整段都會被標掉；KSFO 的 East Maintenance Ramp 和 Gate 67／68／69／77／77A 頭 30–100 m 就是這種，apt.dat 沒畫那裡的鋪面。量測腳本在 Safety Pilot repo 的 `prototype/`（`pave.py`）。
+
 ## 驗收怎麼做
 
 - ProgressiveTaxi：`tools/plan_cli/plan_cli route` 輸出跟插件發布的同一組陣列（JSON，鍵名就是 dataref 名稱，數值先轉成 float 再印，跟 dataref 讀到的一樣；`prog_s` 和跟它有關的值是 `prog_s` = 0 時的值；另外多 `turns`、`spans`、`meta` 三個鍵，不是 dataref）。插件和 CLI 都呼叫 `src/planner/ptx_path.c` 的 `ptx_path_build()`。Safety Pilot 的離線測試拿這些 JSON 當固定資料。`--from-pose` 是 `taxi_route` 的規劃（不後推，從停機位滑出）。
