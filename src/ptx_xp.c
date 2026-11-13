@@ -25,6 +25,7 @@
 #include <XPLMGraphics.h>
 #include <XPLMMenus.h>
 #include <XPLMNavigation.h>
+#include <XPLMPlanes.h>
 #include <XPLMProcessing.h>
 #include <XPLMUtilities.h>
 
@@ -37,10 +38,13 @@
 
 #include "acf_outline.h"
 #include "bp.h"
+#include "cfg.h"
 #include "driving.h"
+#include "planner/ptx_path.h"
 #include "planner/ptx_plan.h"
 #include "planner/ptx_scenery.h"
 #include "ptx_menu.h"
+#include "ptx_route.h"
 #include "ptx_ui.h"
 #include "ptx_xp.h"
 #include "xplane.h"
@@ -60,6 +64,7 @@ static struct {
 	/* commands */
 	XPLMCommandRef	cmd_open, cmd_next, cmd_prev, cmd_best, cmd_close;
 	XPLMCommandRef	cmd_xptug;
+	XPLMCommandRef	cmd_taxi, cmd_taxi_clear;
 
 	/* plugins sub-menu */
 	XPLMMenuID	root;
@@ -92,13 +97,19 @@ static struct {
 	double		plan_hdg;
 	bool		full_length, full_length_set;
 	bool		start_best_when_ready;
+	bool		route_when_ready;
+
+	/* wingspan for the width class without bp_init() */
+	char		outline_path[1024];
+	acf_outline_t	*outline;
 
 	dr_t		local_x, local_y, local_z, psi, elev, lat, lon;
-	dr_t		wind_dir, wind_spd;
+	dr_t		wind_dir, wind_spd, onground;
 } px;
 
 static void plan_and_show(void);
 static void start_row(int row);
+static void taxi_route(void);
 
 /* ---------------------------------------------------------------------- */
 
@@ -133,6 +144,10 @@ rebuild_submenu(void)
 	XPLMAppendMenuItemWithCommand(px.sub, "Open runway menu", px.cmd_open);
 	XPLMAppendMenuItemWithCommand(px.sub, "Push to the recommended runway",
 	    px.cmd_best);
+	XPLMAppendMenuItemWithCommand(px.sub, "Taxi route from here "
+	    "(highlighted / recommended runway)", px.cmd_taxi);
+	XPLMAppendMenuItemWithCommand(px.sub, "Clear taxi route",
+	    px.cmd_taxi_clear);
 	if (!px.have_plan || px.g == NULL)
 		return;
 	XPLMAppendMenuSeparator(px.sub);
@@ -147,6 +162,34 @@ rebuild_submenu(void)
 		    e[0] ? e : "apron", r->pb_len);
 		XPLMAppendMenuItem(px.sub, buf, (void *)(intptr_t)(row + 1),
 		    1);
+	}
+}
+
+/*
+ * Path options for this aircraft. The fillet radii can be overridden in
+ * Output/preferences/ProgressiveTaxi.cfg: taxi_route_radius_A .. _F
+ * (metres, by the narrower taxiway's width class) and
+ * taxi_route_radius_unknown.
+ */
+static void
+path_opts(double wheelbase, double max_steer, ptx_path_opts_t *po)
+{
+	ptx_path_opts_default(po);
+	po->r_min = ptx_path_min_radius(wheelbase, max_steer);
+	if (bp_conf == NULL)
+		return;
+	for (int c = 0; c < 6; c++) {
+		char key[32];
+		double v;
+		snprintf(key, sizeof (key), "taxi_route_radius_%c", 'A' + c);
+		if (conf_get_d(bp_conf, key, &v) && v > 0)
+			po->r_pref[c] = v;
+	}
+	{
+		double v;
+		if (conf_get_d(bp_conf, "taxi_route_radius_unknown", &v) &&
+		    v > 0)
+			po->r_unknown = v;
 	}
 }
 
@@ -254,6 +297,7 @@ loader_floop(float elapsed1, float elapsed2, int counter, void *refcon)
 	px.load_done = false;
 	px.load_apt = NULL;
 	if (apt == NULL) {
+		px.route_when_ready = false;
 		logMsg("auto pushback: %s not found in any scenery pack",
 		    px.load_icao);
 		show_message("找不到這座機場的場景資料，請改用手動規劃",
@@ -273,6 +317,11 @@ loader_floop(float elapsed1, float elapsed2, int counter, void *refcon)
 	px.g = ptx_graph_new(apt);
 	strlcpy(px.icao, apt->icao, sizeof (px.icao));
 	px.full_length_set = false;
+	if (px.route_when_ready) {
+		px.route_when_ready = false;
+		taxi_route();
+		return (0);
+	}
 	plan_and_show();
 	return (0);
 }
@@ -502,6 +551,22 @@ start_row(int row)
 	seg = list_tail(&bp.segs);
 	seg->user_placed = B_TRUE;
 
+	/* the taxi route goes out once the tug has gone */
+	{
+		ptx_path_opts_t po;
+		ptx_path_t path;
+		ptx_path_status_t ps;
+		path_opts(bp.veh.wheelbase, bp.veh.max_steer, &po);
+		ps = ptx_path_build(px.g, r, ri, &po, &path);
+		if (ps == PTX_PATH_OK) {
+			ptx_route_publish_after_pushback(&path,
+			    "after auto pushback");
+		} else {
+			logMsg("taxi route: no path for %s (%s)",
+			    ptx_rend_name(px.g, ri), ptx_path_status_str(ps));
+		}
+	}
+
 	ptx_menu_summary(px.g, r, ri, false, msg, sizeof (msg));
 	logMsg("auto pushback: %s; %d segments, end %.1f/%.1f hdg %.1f",
 	    msg, n, end_l.x, end_l.y, r->end_hdg);
@@ -545,6 +610,150 @@ start_xp_tug(int row)
 	ptx_ui_hide();
 	XPLMSpeakString(msg);
 	XPLMCommandOnce(XPLMFindCommand(cmd));
+}
+
+/* ---------------------------------------------------------------------- */
+/* taxi route from where we are (no pushback)                             */
+/* ---------------------------------------------------------------------- */
+
+static char
+acf_span_class(void)
+{
+	char acf[512], path[1024];
+
+	XPLMGetNthAircraftModel(0, acf, path);
+	if (strcmp(path, px.outline_path) != 0) {
+		if (px.outline != NULL)
+			acf_outline_free(px.outline);
+		px.outline = acf_outline_read(path);
+		strlcpy(px.outline_path, path, sizeof (px.outline_path));
+	}
+	return (span_class(px.outline != NULL ? 2 * px.outline->semispan : 0));
+}
+
+static void
+taxi_route(void)
+{
+	static ptx_ui_model_t model;
+	int order[MAX_RENDS + PTX_UI_MAX_ROWS];
+	char icao[16], msg[256];
+	ptx_acf_gear_t gear;
+	vect2_t pos, dir, Pm, Pn;
+	double hdg;
+	char cls;
+	ptx_aircraft_t ac;
+	ptx_opts_t opts;
+	ptx_result_t *res;
+	ptx_path_opts_t po;
+	ptx_path_t path;
+	ptx_path_status_t ps;
+	int ri = -1, n;
+	bool from_menu = false;
+
+	if (bp_started) {
+		XPLMSpeakString("Pushback in progress.");
+		return;
+	}
+	if (dr_geti(&px.onground) != 1) {
+		XPLMSpeakString("A taxi route needs the aircraft on the "
+		    "ground.");
+		return;
+	}
+	if (!nearest_airport(icao)) {
+		XPLMSpeakString("No airport nearby.");
+		return;
+	}
+	if (px.g == NULL || strcmp(px.icao, icao) != 0) {
+		if (!px.thr_active) {
+			px.route_when_ready = true;
+			XPLMSpeakString("Loading airport data.");
+			start_loading(icao);
+		}
+		return;
+	}
+	if (!ptx_acf_gear(&gear)) {
+		XPLMSpeakString("Can't read this aircraft's landing gear.");
+		return;
+	}
+	hdg = dr_getf(&px.psi);
+	dir = hdg2dir(hdg);
+	pos = VECT2(dr_getf(&px.local_x), -dr_getf(&px.local_z));
+	Pm = local2plan(vect2_add(pos, vect2_scmul(dir, gear.main_fwd)));
+	Pn = local2plan(vect2_add(pos, vect2_scmul(dir, gear.nose_fwd)));
+	cls = acf_span_class();
+	ac.wheelbase = gear.wheelbase;
+	ac.max_steer = gear.max_steer;
+	ac.route_cls = cls;
+	ptx_opts_default(&opts);
+	if (px.full_length_set ? px.full_length : cls >= 'E')
+		opts.w_along = PTX_W_ALONG_FULL_LENGTH;
+
+	n = ptx_n_rends(px.g);
+	res = calloc(n + 1, sizeof (*res));
+	ptx_plan_from_pose(px.g, Pm, Pn, hdg, &ac, &opts, res);
+	if (ptx_ui_visible() && px.have_plan && px.model.highlight >= 0) {
+		ri = px.order[px.model.highlight];
+		from_menu = true;
+	} else if (n <= MAX_RENDS) {
+		/* the menu's recommendation: headwind, then shortest taxi */
+		ptx_menu_ctx_t ctx;
+		memset(&ctx, 0, sizeof (ctx));
+		ctx.icao = px.icao;
+		ctx.kind = PTX_KIND_FACES_TAXIWAY;
+		ctx.have_wind = true;
+		ctx.wind_dir = dr_getf(&px.wind_dir);
+		ctx.wind_kt = dr_getf(&px.wind_spd) * MS2KT;
+		ctx.ac_cls = cls;
+		ptx_menu_build(px.g, res, &ctx, &model, order);
+		if (model.highlight >= 0)
+			ri = order[model.highlight];
+	}
+	logMsg("taxi route request at %s: wheelbase %.2f m, steer %.0f deg, "
+	    "class %c, %s runway %s", px.icao, ac.wheelbase, ac.max_steer,
+	    cls ? cls : '?', from_menu ? "highlighted" : "recommended",
+	    ri >= 0 ? ptx_rend_name(px.g, ri) : "-");
+	for (int i = 0; i < n; i++) {
+		const ptx_result_t *r = &res[i];
+		logMsg("  %-4s %s%s taxi %.0f m, start %s, nose %.1f m off",
+		    ptx_rend_name(px.g, i), ptx_status_str(r->status),
+		    r->has_lead ? " (straight ahead first)" : "", r->taxi,
+		    r->edge >= 0 ? ptx_edge_name(px.g, r->edge) : "-",
+		    r->off_nose);
+	}
+	if (ri < 0 || res[ri].status != PTX_OK) {
+		snprintf(msg, sizeof (msg), "No taxi route to runway %s from "
+		    "here.", ri >= 0 ? ptx_rend_name(px.g, ri) : "");
+		XPLMSpeakString(msg);
+		ptx_results_free(res, n);
+		free(res);
+		return;
+	}
+	path_opts(gear.wheelbase, gear.max_steer, &po);
+	ps = ptx_path_build(px.g, &res[ri], ri, &po, &path);
+	if (ps != PTX_PATH_OK) {
+		logMsg("taxi route: no path for %s (%s)",
+		    ptx_rend_name(px.g, ri), ptx_path_status_str(ps));
+		XPLMSpeakString("Could not build the taxi route.");
+	} else {
+		size_t l = snprintf(msg, sizeof (msg), "Taxi route to runway "
+		    "%s", ptx_rend_name(px.g, ri));
+		int said = 0;
+		for (int i = 0; i < path.n_spans && said < 4 &&
+		    l < sizeof (msg); i++) {
+			const char *nm = path.spans[i].name;
+			if (nm[0] == '\0' || strncmp(nm, "RWY ", 4) == 0)
+				continue;
+			l += snprintf(msg + l, sizeof (msg) - l, "%s%s",
+			    said ? ", " : ", via ", nm);
+			said++;
+		}
+		ptx_route_publish(&path, "taxi_route command");
+		if (l < sizeof (msg))
+			snprintf(msg + l, sizeof (msg) - l, ".");
+		XPLMSpeakString(msg);
+	}
+	ptx_results_free(res, n);
+	free(res);
 }
 
 static void
@@ -620,6 +829,10 @@ cmd_cb(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 		}
 	} else if (cmd == px.cmd_close) {
 		ptx_ui_hide();
+	} else if (cmd == px.cmd_taxi) {
+		taxi_route();
+	} else if (cmd == px.cmd_taxi_clear) {
+		ptx_route_clear("taxi_route_clear command");
 	} else if (cmd == px.cmd_xptug) {
 		if (!px.have_plan)
 			open_menu();
@@ -661,6 +874,12 @@ ptx_xp_start(void)
 	px.cmd_xptug = XPLMCreateCommand(
 	    "ProgressiveTaxi/auto_pushback_xp_tug",
 	    "Auto pushback: use X-Plane's own tug for the highlighted runway");
+	px.cmd_taxi = XPLMCreateCommand("ProgressiveTaxi/taxi_route",
+	    "Taxi route from here to the highlighted runway (menu open) or "
+	    "the recommended one, published as ptaxi/route/...");
+	px.cmd_taxi_clear = XPLMCreateCommand(
+	    "ProgressiveTaxi/taxi_route_clear",
+	    "Withdraw the published taxi route");
 	px.started = true;
 }
 
@@ -687,6 +906,7 @@ ptx_xp_enable(XPLMMenuID root)
 	fdr_find(&px.wind_dir,
 	    "sim/weather/aircraft/wind_now_direction_degt");
 	fdr_find(&px.wind_spd, "sim/weather/aircraft/wind_now_speed_msc");
+	fdr_find(&px.onground, "sim/flightmodel/failures/onground_any");
 	px.floop = XPLMCreateFlightLoop(&fl);
 
 	XPLMRegisterCommandHandler(px.cmd_open, cmd_cb, 1, NULL);
@@ -695,6 +915,9 @@ ptx_xp_enable(XPLMMenuID root)
 	XPLMRegisterCommandHandler(px.cmd_best, cmd_cb, 1, NULL);
 	XPLMRegisterCommandHandler(px.cmd_close, cmd_cb, 1, NULL);
 	XPLMRegisterCommandHandler(px.cmd_xptug, cmd_cb, 1, NULL);
+	XPLMRegisterCommandHandler(px.cmd_taxi, cmd_cb, 1, NULL);
+	XPLMRegisterCommandHandler(px.cmd_taxi_clear, cmd_cb, 1, NULL);
+	ptx_route_init();
 
 	px.root = root;
 	px.sub_item = XPLMAppendMenuItem(root, "Auto pushback", NULL, 1);
@@ -725,6 +948,14 @@ ptx_xp_disable(void)
 	XPLMUnregisterCommandHandler(px.cmd_best, cmd_cb, 1, NULL);
 	XPLMUnregisterCommandHandler(px.cmd_close, cmd_cb, 1, NULL);
 	XPLMUnregisterCommandHandler(px.cmd_xptug, cmd_cb, 1, NULL);
+	XPLMUnregisterCommandHandler(px.cmd_taxi, cmd_cb, 1, NULL);
+	XPLMUnregisterCommandHandler(px.cmd_taxi_clear, cmd_cb, 1, NULL);
+	ptx_route_fini();
+	if (px.outline != NULL) {
+		acf_outline_free(px.outline);
+		px.outline = NULL;
+	}
+	px.outline_path[0] = '\0';
 	ptx_ui_fini();
 	if (px.sub != NULL) {
 		XPLMDestroyMenu(px.sub);

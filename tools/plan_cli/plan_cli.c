@@ -30,6 +30,10 @@
  *                 [--wind DIR KT] [--png menu.png]
  *       The runway menu for one stand; --png renders the plugin's menu.
  *
+ *   plan_cli route / routes / selftest ...
+ *       The taxi path published as ptaxi/route/..., and the batch check of
+ *       it; see tools/plan_cli/plan_route.c.
+ *
  *   plan_cli scenery --xpdir XPDIR --cache DIR ICAO [ICAO ...]
  *       Which apt.dat X-Plane uses for each airport (scenery_packs.ini
  *       order), and how long finding/indexing/parsing takes.
@@ -582,6 +586,10 @@ cmd_scenery(int argc, char **argv)
 	return (rc);
 }
 
+int cmd_route(int argc, char **argv);
+int cmd_routes(int argc, char **argv);
+int cmd_selftest(void);
+
 int
 main(int argc, char **argv)
 {
@@ -591,6 +599,12 @@ main(int argc, char **argv)
 		return (cmd_all(argc - 2, argv + 2));
 	if (argc >= 2 && strcmp(argv[1], "menu") == 0)
 		return (cmd_menu(argc - 2, argv + 2));
-	fprintf(stderr, "usage: plan_cli all|menu ...（見原始檔開頭說明）\n");
+	if (argc >= 2 && strcmp(argv[1], "route") == 0)
+		return (cmd_route(argc - 2, argv + 2));
+	if (argc >= 2 && strcmp(argv[1], "routes") == 0)
+		return (cmd_routes(argc - 2, argv + 2));
+	if (argc >= 2 && strcmp(argv[1], "selftest") == 0)
+		return (cmd_selftest());
+	fprintf(stderr, "usage: plan_cli all|menu|route|routes|selftest|scenery ...（見原始檔開頭說明）\n");
 	return (2);
 }

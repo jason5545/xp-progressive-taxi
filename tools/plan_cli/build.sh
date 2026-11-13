@@ -17,8 +17,10 @@ clang -std=c99 -Wall -Wextra -Werror -O2 -ffp-contract=off \
     -I "$L/cairo/cairo-mac-64/include/cairo" \
     -I "$L/freetype/freetype-mac-64/include/freetype2" \
     -o "$REPO/tools/plan_cli/plan_cli" \
-    "$REPO/tools/plan_cli/plan_cli.c" "$REPO/src/segs.c" \
+    "$REPO/tools/plan_cli/plan_cli.c" "$REPO/tools/plan_cli/plan_route.c" \
+    "$REPO/src/segs.c" \
     "$REPO/src/planner/ptx_apt.c" "$REPO/src/planner/ptx_plan.c" \
+    "$REPO/src/planner/ptx_path.c" \
     "$REPO/src/planner/ptx_scenery.c" \
     "$REPO/src/ptx_menu.c" "$REPO/src/ptx_ui_render.c" \
     "$LIB" "$L/cairo/cairo-mac-64/lib/libcairo.a" \

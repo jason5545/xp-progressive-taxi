@@ -31,6 +31,15 @@
  *   ProgressiveTaxi/auto_pushback_close    close the menu
  *   ProgressiveTaxi/auto_pushback_xp_tug   X-Plane's own tug, direction
  *                                          chosen for the highlighted runway
+ *   ProgressiveTaxi/taxi_route             taxi route from where the
+ *                                          aircraft is (no pushback) to the
+ *                                          highlighted runway, or the
+ *                                          recommended one, published as
+ *                                          ptaxi/route/... (ptx_route.c)
+ *   ProgressiveTaxi/taxi_route_clear       withdraw the published route
+ *
+ * After an automatic pushback the route to its runway is published once
+ * the tug has gone.
  */
 
 #ifndef	_PTX_XP_H_

@@ -37,6 +37,7 @@
 #define	_PTX_PLAN_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include <acfutils/geom.h>
 
@@ -122,6 +123,11 @@ typedef struct {
 	int		entry_node;	/* node index on the runway */
 	double		entry_lost;	/* runway metres lost at the entry */
 
+	/* --- start without a pushback (ptx_plan_from_pose) --- */
+	bool		has_lead;	/* the path starts at lead (main gear) and
+					   runs straight along the heading to end */
+	vect2_t		lead;
+
 	/* --- checks --- */
 	double		off_main;	/* main gear to nearest taxiway, m */
 	double		off_nose;	/* nose gear to nearest taxiway, m */
@@ -178,6 +184,51 @@ void ptx_plan(ptx_graph_t *g, vect2_t main_pos, vect2_t ref_pos,
     double hdg, int own_stand, const ptx_aircraft_t *ac,
     const ptx_opts_t *opts, ptx_result_t *results, ptx_diag_t *diag);
 void ptx_results_free(ptx_result_t *results, int n);
+
+/*
+ * Taxi route from where the aircraft is now, without a pushback. For each
+ * runway end the cheapest of:
+ *  - a taxiway edge within 15 m of the nose whose direction is within
+ *    45 deg of the heading (10 m of route per metre the nose is off it);
+ *    end is the main gear projected onto that edge;
+ *  - when parked facing a taxiway (usually crossing ahead at 90 deg):
+ *    straight ahead along the heading to where that line meets a taxiway
+ *    edge 2..150 m past the nose, then either way along it (turn <= 120
+ *    deg); has_lead is set, lead = main gear, end = the meeting point.
+ * end_hdg is the edge direction, pb_len 0, pb_allowed true. Fills results
+ * like ptx_plan(); free with ptx_results_free(). Doesn't change
+ * ptx_plan()'s behaviour.
+ */
+void ptx_plan_from_pose(ptx_graph_t *g, vect2_t main_pos, vect2_t nose_pos,
+    double hdg, const ptx_aircraft_t *ac, const ptx_opts_t *opts,
+    ptx_result_t *results);
+
+typedef struct {
+	int	route_idx;	/* hold at the start node of route[route_idx] */
+	bool	departure;	/* the departure runway's hold */
+	char	names[64];	/* "05L/23R"; several runways comma separated */
+} ptx_hold_t;
+
+/*
+ * Hold-short points along r's route to runway end ri, in route order:
+ * one before each other runway (or its 1204 zone) the route crosses and
+ * one for the departure runway (the same node describe() picks as
+ * hs_node). Returns the count.
+ */
+int ptx_route_holds(const ptx_graph_t *g, const ptx_result_t *r, int ri,
+    ptx_hold_t *holds, int max);
+
+char ptx_edge_cls(const ptx_graph_t *g, int e);	/* 'A'..'F', 0 if none */
+void ptx_edge_ends(const ptx_graph_t *g, int e, vect2_t *A, vect2_t *B);
+/* threshold, unit direction (take-off direction), length, width */
+void ptx_rend_geom(const ptx_graph_t *g, int ri, vect2_t *thr, vect2_t *u,
+    double *len, double *width);
+/* "05L/23R" as written in the 100 row */
+void ptx_rend_pair_name(const ptx_graph_t *g, int ri, char *buf,
+    size_t cap);
+/* the projection origin (mean of the runway ends), degrees */
+double ptx_ref_lat(const ptx_graph_t *g);
+double ptx_ref_lon(const ptx_graph_t *g);
 
 /*
  * Taxiway names along the route, consecutive duplicates merged, runway

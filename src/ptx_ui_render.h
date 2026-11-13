@@ -84,6 +84,8 @@ ptx_ui_fonts_t *ptx_ui_fonts_new(void);
 void ptx_ui_fonts_free(ptx_ui_fonts_t *f);
 bool ptx_ui_fonts_cjk(const ptx_ui_fonts_t *f);
 const char *ptx_ui_fonts_desc(const ptx_ui_fonts_t *f);
+/* the cairo face of the loaded font (owned by f) */
+cairo_font_face_t *ptx_ui_fonts_face(const ptx_ui_fonts_t *f);
 
 void ptx_ui_layout(const ptx_ui_model_t *m, ptx_ui_layout_t *l);
 void ptx_ui_render(cairo_t *cr, const ptx_ui_model_t *m,

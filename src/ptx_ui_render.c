@@ -150,6 +150,12 @@ ptx_ui_fonts_cjk(const ptx_ui_fonts_t *f)
 	return (f != NULL && f->cjk);
 }
 
+cairo_font_face_t *
+ptx_ui_fonts_face(const ptx_ui_fonts_t *f)
+{
+	return (f != NULL ? f->cr : NULL);
+}
+
 const char *
 ptx_ui_fonts_desc(const ptx_ui_fonts_t *f)
 {

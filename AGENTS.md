@@ -78,12 +78,18 @@ tools/check-xplane-log.sh
 | `ProgressiveTaxi/auto_pushback_best` | 不開選單，直接推到建議跑道 |
 | `ProgressiveTaxi/auto_pushback_close` | 關選單 |
 | `ProgressiveTaxi/auto_pushback_xp_tug` | 改用 X-Plane 自己的拖車（只會左轉 90°、右轉 90°、直退），方向依反白的跑道自動選 |
+| `ProgressiveTaxi/taxi_route` | 不後推，從目前位置規劃滑行路線到反白的跑道（選單沒開就用建議跑道），發布成 `ptaxi/route/*` |
+| `ProgressiveTaxi/taxi_route_clear` | 收回已發布的滑行路線 |
 
 Plugins › Progressive Taxi › Auto pushback 也有同樣的項目，選單算好後會列出每條跑道（英文）。
 
 流程：最近的機場（`XPLMFindNavAid`）→ 依 `scenery_packs.ini` 找到 X-Plane 實際用的 apt.dat（背景執行緒；Global Airports 第一次會建索引，存在 `Output/caches/ProgressiveTaxi_aptidx/`）→ 從飛機主輪位置規劃每條跑道 → 選單（中文需要系統有 PingFang TC 或 Heiti TC，沒有就英文）→ 點一條跑道 → 在 X-Plane 本地座標重算 BetterPushback 路段 → 原本的拖車流程。E、F 級機預設「全長入口」。
 
 Log.txt 會記下載入了哪份 apt.dat、每條跑道的規劃結果，前綴 `ProgressiveTaxi`。
+
+### 滑行路線（給 Safety Pilot）
+
+介面規格在 `design/taxi-route-interface.md`（dataref 名稱、型別、路徑形狀、生命週期都以它為準，Safety Pilot 照它寫）。自動後推完、拖車離開後，插件把那條跑道的滑行路線發布成 `ptaxi/route/*`；`taxi_route` 指令是不後推的版本。每次發布和收回都記在 Log.txt（`taxi route published #…`、`taxi route #… withdrawn: …`）。
 
 ### C 規劃核心、CLI、對拍
 
@@ -96,13 +102,22 @@ tools/plan_cli/plan_cli menu --apt /tmp/apt/RCTP.dat --stand B5 \
     --wheelbase 15.39 --max-steer 75 --class C --wind 060 12 --png /tmp/menu.png
 # X-Plane 對某機場會用哪份 apt.dat
 tools/plan_cli/plan_cli scenery --xpdir "$HOME/X-Plane 12" --cache /tmp/idx RCTP LFMN
+# 插件發布的滑行路線（JSON，鍵名＝dataref 名稱），--png 畫網路、路徑、圓弧、等待線
+tools/plan_cli/plan_cli route --apt /tmp/apt/RCTP.dat --stand 516 --rwy 05R \
+    --wheelbase 10.494 --max-steer 60 --class C --out /tmp/route.json --png /tmp/route.png
+# 加 --from-pose：不後推，從停機位直接滑出（taxi_route 指令的規劃）
+# 一個機場所有停機位 × 跑道端的滑行路線驗收（結束碼 0＝全過），ATR 72 與 777 兩組參數
+tools/plan_cli/plan_cli routes --apt /tmp/apt/RCTP.dat --wheelbase 10.494 --max-steer 60 --class C
+tools/plan_cli/plan_cli routes --apt /tmp/apt/RCTP.dat --wheelbase 25.348 --max-steer 70 --class E
+# 進度追蹤不跳段（人工 U 形彎；5 個測試機場都沒有回頭這麼近的路線）
+tools/plan_cli/plan_cli selftest
 # 跟 Python 原型逐筆對拍＋驗收門檻 1–4（結束碼 0＝全過）
 python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCSS.dat --label x --out /tmp/x --no-html --fleet-out /tmp/fleet.txt
 python3 -I tools/plan_cli/parity.py --fleet /tmp/fleet.txt --cli tools/plan_cli/plan_cli \
     --work /tmp/parity RCTP=/tmp/apt/RCTP.dat KSFO=/tmp/apt/KSFO.dat
 ```
 
-改 `src/planner/` 的演算法時，Python 原型要一起改，對拍必須維持全過。兩邊刻意用同樣的浮點寫法與走訪順序（`segs.c`、`planner/*.c` 以 `-ffp-contract=off` 編譯）。
+改 `src/planner/` 的演算法時，Python 原型要一起改，對拍必須維持全過。`ptx_path.c` 和 `ptx_plan_from_pose()` 沒有 Python 原型，不在對拍範圍，改了跑 `plan_cli routes`。兩邊刻意用同樣的浮點寫法與走訪順序（`segs.c`、`planner/*.c` 以 `-ffp-contract=off` 編譯）。
 
 ### 離線規劃原型（第 0 步）
 
@@ -158,8 +173,12 @@ python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCTP.dat --label RCTP --out tool
 
 - `src/planner/ptx_apt.c`：apt.dat 讀取（100、1300/1301、1201、1202、1204）。
 - `src/planner/ptx_scenery.c`：依 scenery_packs.ini 找 apt.dat、大檔建索引。
-- `src/planner/ptx_plan.c`：選後推終點、路由到跑道入口、停機位分類。`tools/proto/pbplan.py` 的 C 版。
+- `src/planner/ptx_plan.c`：選後推終點、路由到跑道入口、停機位分類。`tools/proto/pbplan.py` 的 C 版。另有不後推的 `ptx_plan_from_pose()`、等待線 `ptx_route_holds()`。
+- `src/planner/ptx_path.c`：規劃結果 → 發布用的滑行路徑（路口圓弧、跑道延伸、flags、等待線、滑行道名稱區段、進度追蹤）。插件和 `plan_cli route` 共用。
 - `src/ptx_menu.c`：規劃結果 → 選單文字。
 - `src/ptx_ui_render.c`：選單版面與 cairo 繪製、字型。
 - `src/ptx_ui.c`：X-Plane 視窗。
-- `src/ptx_xp.c`：指令、背景載入、規劃、交給 BetterPushback 或 X-Plane 拖車、Plugins 子選單。
+- `src/ptx_xp.c`：指令、背景載入、規劃、交給 BetterPushback 或 X-Plane 拖車、Plugins 子選單、`taxi_route` 指令。
+- `src/ptx_route.c`：`ptaxi/route/*` dataref、發布／收回、每幀進度。
+- `tools/plan_cli/plan_route.c`：`plan_cli route`／`routes`。
+- `tools/proto/cl_vs_net.py`、`tools/proto/paint_radius.py`：量漆線離滑行網路多遠、路口漆線彎道半徑（定圓弧偏好半徑用）。

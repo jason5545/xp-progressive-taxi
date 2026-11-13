@@ -1549,6 +1549,47 @@ describe(ptx_graph_t *g, const rend_t *r, const int *seq, int n,
 	res->entry_node = (n > 0 ? g->de[seq[n - 1]].to : -1);
 }
 
+/*
+ * Walks the route table from directed edge did (the edge the aircraft
+ * starts on, to_node metres before its end node) and fills the route
+ * fields of res: route, n_route, taxi, hold-short / entry nodes, turns,
+ * entry_lost.
+ */
+static void
+fill_route(ptx_graph_t *g, const rend_t *r, const rtab_t *t, int did,
+    double to_node, ptx_result_t *res)
+{
+	int *seq = malloc((g->n_de + 1) * sizeof (int));
+	int nseq = 0;
+	uint8_t *seen = calloc(g->n_de + 1, 1);
+	int d = did;
+
+	seq[nseq++] = d;
+	seen[d] = 1;
+	while (t->nxt[d] >= 0) {
+		d = t->nxt[d];
+		if (seen[d])
+			break;
+		seen[d] = 1;
+		seq[nseq++] = d;
+	}
+	free(seen);
+	describe(g, r, seq, nseq, res);
+	res->route = seq;
+	res->n_route = nseq;
+	res->taxi = to_node;
+	for (int i = 1; i < nseq; i++)
+		res->taxi += g->de[seq[i]].L;
+	res->entry_lost = (r->target_along);
+	for (int j = 0; j < r->n_entries; j++) {
+		if (r->entry_node[j] == res->entry_node) {
+			res->entry_lost = r->entry_lost[j] +
+			    r->target_along;
+			break;
+		}
+	}
+}
+
 void
 ptx_plan(ptx_graph_t *g, vect2_t Pm, vect2_t Pn, double H, int own_stand,
     const ptx_aircraft_t *ac, const ptx_opts_t *opts, ptx_result_t *results,
@@ -1571,7 +1612,6 @@ ptx_plan(ptx_graph_t *g, vect2_t Pm, vect2_t Pn, double H, int own_stand,
 		int bi = -1, did_best = -1;
 		double best_total = 0;
 		const best_t *b;
-		int *seq, nseq = 0;
 		vect2_t nosep;
 		int ne;
 
@@ -1626,36 +1666,7 @@ ptx_plan(ptx_graph_t *g, vect2_t Pm, vect2_t Pn, double H, int own_stand,
 		res->pb_warn = (res->pb_len > opts->pb_warn);
 		res->pb_allowed = (res->pb_len <= opts->pb_limit);
 
-		/* walk the route */
-		seq = malloc((g->n_de + 1) * sizeof (int));
-		{
-			uint8_t *seen = calloc(g->n_de + 1, 1);
-			int d = did_best;
-			seq[nseq++] = d;
-			seen[d] = 1;
-			while (t->nxt[d] >= 0) {
-				d = t->nxt[d];
-				if (seen[d])
-					break;
-				seen[d] = 1;
-				seq[nseq++] = d;
-			}
-			free(seen);
-		}
-		describe(g, r, seq, nseq, res);
-		res->route = seq;
-		res->n_route = nseq;
-		res->taxi = b->c.to_node;
-		for (int i = 1; i < nseq; i++)
-			res->taxi += g->de[seq[i]].L;
-		res->entry_lost = (r->target_along);
-		for (int j = 0; j < r->n_entries; j++) {
-			if (r->entry_node[j] == res->entry_node) {
-				res->entry_lost = r->entry_lost[j] +
-				    r->target_along;
-				break;
-			}
-		}
+		fill_route(g, r, t, did_best, b->c.to_node, res);
 
 		/* checks */
 		res->off_main = nearest_taxi(g, res->end, 60.0, false, NULL, buf);
@@ -1772,4 +1783,278 @@ ptx_route_entry_name(const ptx_graph_t *g, const ptx_result_t *r)
 	if (r->n_route == 0)
 		return ("");
 	return (g->edges[g->de[r->route[r->n_route - 1]].eid].src->name);
+}
+
+/* ---------------------------------------------------------------------- */
+/* taxi route from the current pose (no pushback)                         */
+/* ---------------------------------------------------------------------- */
+
+#define	POSE_R		15.0	/* on a taxiway: this close to the nose */
+#define	POSE_MAX_ANG	45.0	/* edge direction vs aircraft heading */
+#define	POSE_W_OFF	10.0	/* route metres per metre the nose is off */
+#define	LEAD_MIN	2.0	/* straight lead-in meets the taxiway this far */
+#define	LEAD_MAX	150.0	/* ... to this far past the nose */
+#define	LEAD_PEN	20.0	/* prefer staying on the taxiway we're on */
+
+typedef struct {
+	int	did;
+	double	cost0;		/* everything but togo */
+	double	al;		/* end point, metres along the directed edge */
+	bool	lead;
+	vect2_t	join;
+} pcand_t;
+
+void
+ptx_plan_from_pose(ptx_graph_t *g, vect2_t Pm, vect2_t Pn, double H,
+    const ptx_aircraft_t *ac, const ptx_opts_t *opts, ptx_result_t *results)
+{
+	int *buf = malloc((g->n_edges + 1) * sizeof (int));
+	pcand_t *cand = malloc((4 * g->n_edges + 1) * sizeof (pcand_t));
+	int n_cand = 0;
+	vect2_t f = hdg2v(H);
+	double ahead = vdot(vsub(Pn, Pm), f);	/* main gear to nose */
+	int n;
+
+	/* on a taxiway, pointing along it */
+	n = near_edges(g, Pn, POSE_R, buf);
+	for (int i = 0; i < n; i++) {
+		const gedge_t *e = &g->edges[buf[i]];
+		if (e->runway || !cls_ok(e->cls, ac->route_cls))
+			continue;
+		for (int s = 0; s < 2; s++) {
+			int did = g->de_index[2 * buf[i] + s];
+			const gde_t *d;
+			vect2_t F, u;
+			double al;
+			if (did < 0)
+				continue;
+			d = &g->de[did];
+			if (fabs(relh(H, d->hdg)) > POSE_MAX_ANG)
+				continue;
+			F = g->node_p[d->from];
+			u = vmul(vsub(g->node_p[d->to], F), 1 / d->L);
+			al = fmin(fmax(vdot(vsub(Pm, F), u), 0.0), d->L);
+			cand[n_cand].did = did;
+			cand[n_cand].al = al;
+			cand[n_cand].lead = false;
+			cand[n_cand].cost0 = POSE_W_OFF *
+			    seg_dist(Pn, e->A, e->B, NULL) + (d->L - al);
+			n_cand++;
+		}
+	}
+	/* straight ahead onto a taxiway */
+	n = near_edges(g, Pn, LEAD_MAX, buf);
+	for (int i = 0; i < n; i++) {
+		const gedge_t *e = &g->edges[buf[i]];
+		vect2_t d2 = vsub(e->B, e->A), w = vsub(e->A, Pm), J;
+		double den = f.x * d2.y - f.y * d2.x, tau, t;
+		if (e->runway || !cls_ok(e->cls, ac->route_cls))
+			continue;
+		if (fabs(den) < 1e-9 * e->L)
+			continue;
+		tau = (w.x * d2.y - w.y * d2.x) / den;
+		t = (w.x * f.y - w.y * f.x) / den;
+		if (t < 0 || t > 1 || tau < ahead + LEAD_MIN ||
+		    tau > ahead + LEAD_MAX)
+			continue;
+		J = vadd(Pm, vmul(f, tau));
+		for (int s = 0; s < 2; s++) {
+			int did = g->de_index[2 * buf[i] + s];
+			double turn, al;
+			if (did < 0)
+				continue;
+			turn = fabs(relh(H, g->de[did].hdg));
+			if (turn > MAX_TURN)
+				continue;
+			al = (s == 0 ? t : 1 - t) * e->L;
+			cand[n_cand].did = did;
+			cand[n_cand].al = al;
+			cand[n_cand].lead = true;
+			cand[n_cand].join = J;
+			cand[n_cand].cost0 = tau + LEAD_PEN +
+			    (turn > SHARP_TURN ? SHARP_PEN : 0.0) + (e->L - al);
+			n_cand++;
+		}
+	}
+	for (int ri = 0; ri < g->n_rends; ri++) {
+		rend_t *r = &g->rends[ri];
+		ptx_result_t *res = &results[ri];
+		rtab_t *t = route_table(g, r, ac->route_cls, opts->w_along);
+		int best = -1;
+		double best_c = 0;
+
+		memset(res, 0, sizeof (*res));
+		res->edge = -1;
+		res->hs_node = -1;
+		res->entry_node = -1;
+		res->ang_edge = NAN;
+		for (int k = 0; k < n_cand; k++) {
+			double c;
+			if (isinf(t->togo[cand[k].did]))
+				continue;
+			c = cand[k].cost0 + t->togo[cand[k].did];
+			if (best < 0 || c < best_c) {
+				best = k;
+				best_c = c;
+			}
+		}
+		if (best < 0) {
+			res->status = (r->target < 0 ? PTX_NO_RUNWAY_EDGES :
+			    n_cand == 0 ? PTX_NO_CANDIDATE : PTX_NO_ROUTE);
+			continue;
+		}
+		{
+			const pcand_t *c = &cand[best];
+			const gde_t *d = &g->de[c->did];
+			vect2_t F = g->node_p[d->from], T = g->node_p[d->to];
+			vect2_t u = vmul(vsub(T, F), 1 / d->L);
+
+			res->status = PTX_OK;
+			res->edge = d->eid;
+			res->sgn = (d->from == g->edges[d->eid].a ? 1 : -1);
+			res->end = (c->lead ? c->join : vadd(F, vmul(u, c->al)));
+			res->end_hdg = d->hdg;
+			res->has_lead = c->lead;
+			res->lead = Pm;
+			res->r_used = INFINITY;
+			res->pb_allowed = true;
+			res->tier = PTX_TIER_STANDARD;
+			res->off_nose = seg_dist(Pn, F, T, NULL);
+			res->off_main = seg_dist(Pm, F, T, NULL);
+			res->ang_edge = fabs(relh(H, d->hdg));
+			fill_route(g, r, t, c->did, d->L - c->al, res);
+			if (c->lead)
+				res->taxi += vdist(Pm, c->join);
+		}
+	}
+	free(buf);
+	free(cand);
+}
+
+/* ---------------------------------------------------------------------- */
+/* accessors for the path builder (src/planner/ptx_path.c)                */
+/* ---------------------------------------------------------------------- */
+
+void
+ptx_edge_ends(const ptx_graph_t *g, int e, vect2_t *A, vect2_t *B)
+{
+	*A = g->edges[e].A;
+	*B = g->edges[e].B;
+}
+
+char
+ptx_edge_cls(const ptx_graph_t *g, int e)
+{
+	return (g->edges[e].cls);
+}
+
+void
+ptx_rend_geom(const ptx_graph_t *g, int ri, vect2_t *thr, vect2_t *u,
+    double *len, double *width)
+{
+	const rend_t *r = &g->rends[ri];
+	if (thr != NULL)
+		*thr = r->thr;
+	if (u != NULL)
+		*u = r->u;
+	if (len != NULL)
+		*len = r->len;
+	if (width != NULL)
+		*width = r->width;
+}
+
+void
+ptx_rend_pair_name(const ptx_graph_t *g, int ri, char *buf, size_t cap)
+{
+	const ptx_runway_t *rw = &g->apt->rwys[ri / 2];
+	snprintf(buf, cap, "%s/%s", rw->end[0].name, rw->end[1].name);
+}
+
+double
+ptx_ref_lat(const ptx_graph_t *g)
+{
+	return (g->lat0);
+}
+
+double
+ptx_ref_lon(const ptx_graph_t *g)
+{
+	return (g->lon0);
+}
+
+/* runway pair names ("05L/23R") of the zone runways that aren't r's */
+static void
+zone_names(const ptx_graph_t *g, const gedge_t *e, const rend_t *r,
+    char *buf, size_t cap)
+{
+	size_t len = 0;
+
+	buf[0] = '\0';
+	for (int i = 0; i < g->apt->n_rwys; i++) {
+		const ptx_runway_t *rw = &g->apt->rwys[i];
+		char a[PTX_RWY_LEN], b[PTX_RWY_LEN];
+		ptx_rwy_norm(rw->end[0].name, a);
+		ptx_rwy_norm(rw->end[1].name, b);
+		if (strcmp(a, r->pair[0]) == 0 || strcmp(a, r->pair[1]) == 0)
+			continue;
+		if (!zr_has(e->zr, e->n_zr, a) && !zr_has(e->zr, e->n_zr, b))
+			continue;
+		if (len < cap) {
+			len += snprintf(buf + len, cap - len, "%s%s/%s",
+			    len ? "," : "", rw->end[0].name, rw->end[1].name);
+		}
+	}
+}
+
+int
+ptx_route_holds(const ptx_graph_t *g, const ptx_result_t *res, int ri,
+    ptx_hold_t *holds, int max)
+{
+	const rend_t *r = &g->rends[ri];
+	bool in_cross = false, have_dep = false;
+	int n = 0;
+
+	for (int i = 0; i < res->n_route; i++) {
+		const gde_t *d = &g->de[res->route[i]];
+		const gedge_t *e = &g->edges[d->eid];
+		bool is_target, other;
+
+		/* same tests as describe() */
+		is_target = (e->runway && r->rw_edge[d->eid]) ||
+		    (e->n_zr > 0 && zr_meets_pair(e, r) && !e->runway &&
+		    is_dep_zone_for(e, r));
+		if (!have_dep && is_target && i > 0 && n < max) {
+			holds[n].route_idx = i;
+			holds[n].departure = true;
+			ptx_rend_pair_name(g, ri, holds[n].names,
+			    sizeof (holds[n].names));
+			n++;
+			have_dep = true;
+		}
+		other = (e->runway && !r->rw_edge[d->eid]) ||
+		    (e->n_zr > 0 && !zr_meets_pair(e, r));
+		if (other && !in_cross && n < max) {
+			holds[n].route_idx = i;
+			holds[n].departure = false;
+			if (e->runway) {
+				snprintf(holds[n].names,
+				    sizeof (holds[n].names), "%s",
+				    e->src->name);
+			} else {
+				zone_names(g, e, r, holds[n].names,
+				    sizeof (holds[n].names));
+			}
+			if (holds[n].names[0] != '\0')
+				n++;
+		}
+		in_cross = other;
+	}
+	if (!have_dep && res->n_route > 0 && n < max) {
+		holds[n].route_idx = res->n_route - 1;
+		holds[n].departure = true;
+		ptx_rend_pair_name(g, ri, holds[n].names,
+		    sizeof (holds[n].names));
+		n++;
+	}
+	return (n);
 }
