@@ -342,11 +342,37 @@ start_loading(const char *icao)
 /* planning                                                               */
 /* ---------------------------------------------------------------------- */
 
+/*
+ * The stand the aircraft sits on: the stand point closest to the main
+ * gear - nose axis, within OWN_STAND_DIST. -1 if none.
+ */
+static int
+find_own_stand(vect2_t Pm, vect2_t Pnose)
+{
+	double best = 1e18;
+	int own = -1;
+
+	for (int i = 0; i < px.apt->n_stands; i++) {
+		vect2_t s = ptx_project(px.g, px.apt->stands[i].lat,
+		    px.apt->stands[i].lon);
+		vect2_t ax = vect2_sub(Pnose, Pm);
+		double l2 = vect2_dotprod(ax, ax), t = 0, d;
+		if (l2 > 0)
+			t = MAX(0, MIN(1, vect2_dotprod(vect2_sub(s, Pm), ax) / l2));
+		d = vect2_dist(s, vect2_add(Pm, vect2_scmul(ax, t)));
+		if (d < best) {
+			best = d;
+			own = i;
+		}
+	}
+	return (best > OWN_STAND_DIST ? -1 : own);
+}
+
 static void
 plan_and_show(void)
 {
 	vect2_t main_l, nose_l, Pm, Pnose, Pn;
-	double hdg, best = 1e18, d_back, d_front;
+	double hdg, d_back, d_front;
 	int own = -1;
 	const char *type = NULL;
 	ptx_aircraft_t ac;
@@ -365,21 +391,7 @@ plan_and_show(void)
 	acf_pose(&main_l, &nose_l, &hdg);
 	Pm = local2plan(main_l);
 	Pnose = local2plan(nose_l);
-	for (int i = 0; i < px.apt->n_stands; i++) {
-		vect2_t s = ptx_project(px.g, px.apt->stands[i].lat,
-		    px.apt->stands[i].lon);
-		vect2_t ax = vect2_sub(Pnose, Pm);
-		double l2 = vect2_dotprod(ax, ax), t = 0, d;
-		if (l2 > 0)
-			t = MAX(0, MIN(1, vect2_dotprod(vect2_sub(s, Pm), ax) / l2));
-		d = vect2_dist(s, vect2_add(Pm, vect2_scmul(ax, t)));
-		if (d < best) {
-			best = d;
-			own = i;
-		}
-	}
-	if (best > OWN_STAND_DIST)
-		own = -1;
+	own = find_own_stand(Pm, Pnose);
 	if (own >= 0) {
 		const ptx_stand_t *st = &px.apt->stands[own];
 		Pn = ptx_project(px.g, st->lat, st->lon);
@@ -687,6 +699,20 @@ taxi_route(void)
 	ptx_opts_default(&opts);
 	if (px.full_length_set ? px.full_length : cls >= 'E')
 		opts.w_along = PTX_W_ALONG_FULL_LENGTH;
+	/* nose-in stand: never "straight ahead", that's the terminal */
+	{
+		int own = find_own_stand(Pm, Pn);
+		if (own >= 0) {
+			const ptx_stand_t *st = &px.apt->stands[own];
+			double d_back, d_front;
+			opts.no_lead = (ptx_classify(px.g,
+			    ptx_project(px.g, st->lat, st->lon), hdg, st->type,
+			    &d_back, &d_front) == PTX_KIND_PUSHBACK);
+			logMsg("taxi route: on stand %s, %s", st->name,
+			    opts.no_lead ? "needs a pushback, no straight-ahead "
+			    "start" : "straight-ahead start allowed");
+		}
+	}
 
 	n = ptx_n_rends(px.g);
 	res = calloc(n + 1, sizeof (*res));

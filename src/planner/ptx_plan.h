@@ -62,6 +62,13 @@ typedef struct {
 	double	pb_warn;
 	/* above this the plugin won't push automatically */
 	double	pb_limit;
+	/*
+	 * ptx_plan_from_pose() only: don't offer "straight ahead onto a
+	 * taxiway". Set when the aircraft sits on a stand that needs a
+	 * pushback (nose-in): straight ahead runs into the terminal.
+	 * ptx_plan() ignores it.
+	 */
+	bool	no_lead;
 } ptx_opts_t;
 
 /* w_along that effectively forces the full-length entry when reachable */

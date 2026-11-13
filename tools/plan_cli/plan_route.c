@@ -200,6 +200,10 @@ plan_stand(ptx_graph_t *g, const ptx_apt_t *apt, int si, const args_t *a,
 		/* nose wheel at the ramp start, main gear behind it */
 		vect2_t nose = (a->main_ref ? VECT2(Pn.x + sin(h) * a->wb,
 		    Pn.y + cos(h) * a->wb) : Pn);
+		double d_back, d_front;
+		/* same rule as the plugin: no straight-ahead from a nose-in stand */
+		opts.no_lead = (ptx_classify(g, ptx_project(g, st->lat, st->lon),
+		    st->hdg, st->type, &d_back, &d_front) == PTX_KIND_PUSHBACK);
 		ptx_plan_from_pose(g, Pm, nose, st->hdg, &ac, &opts, res);
 	} else {
 		ptx_plan(g, Pm, Pn, st->hdg, si, &ac, &opts, res, NULL);

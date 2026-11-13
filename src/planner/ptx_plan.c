@@ -1344,6 +1344,7 @@ ptx_opts_default(ptx_opts_t *opts)
 	opts->w_along = 2.0;
 	opts->pb_warn = 200.0;
 	opts->pb_limit = 300.0;
+	opts->no_lead = false;
 }
 
 int
@@ -1842,8 +1843,8 @@ ptx_plan_from_pose(ptx_graph_t *g, vect2_t Pm, vect2_t Pn, double H,
 			n_cand++;
 		}
 	}
-	/* straight ahead onto a taxiway */
-	n = near_edges(g, Pn, LEAD_MAX, buf);
+	/* straight ahead onto a taxiway (not from a nose-in stand) */
+	n = (opts->no_lead ? 0 : near_edges(g, Pn, LEAD_MAX, buf));
 	for (int i = 0; i < n; i++) {
 		const gedge_t *e = &g->edges[buf[i]];
 		vect2_t d2 = vsub(e->B, e->A), w = vsub(e->A, Pm), J;
