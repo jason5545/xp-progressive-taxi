@@ -62,12 +62,17 @@ assert "bp_fast_ground_handling" not in call_tug
 
 # Keep the existing cache APIs unchanged; Classic uses its tolerant wrappers.
 driving = (repo / "src/driving.c").read_text()
+# ProgressiveTaxi doesn't import BetterPushbackMod's v1.x tags (they would
+# take over git describe), so name the tagged commits directly:
+# v1.13 = ac6a23a, v1.14 = bc6ce39.
 original = subprocess.check_output(
-    ["git", "show", "v1.13:src/driving.c"], cwd=repo, text=True)
+    ["git", "show", "ac6a23aa4f90bdf67619d102971e9b072b4f240a:src/driving.c"],
+    cwd=repo, text=True)
 for name in ("route_load", "route_save"):
     assert function(driving, name) == function(original, name), name
 upstream = subprocess.check_output(
-    ["git", "show", "v1.14:src/driving.c"], cwd=repo, text=True)
+    ["git", "show", "bc6ce396956c40b2a89aaff3d49a5944b9e8a9d8:src/driving.c"],
+    cwd=repo, text=True)
 assert block(driving, driving.index("static int\nroute_table_compar")) == block(
     upstream, upstream.index("static int\nroute_table_compar"))
 

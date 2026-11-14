@@ -5,10 +5,10 @@ repo_dir=$(CDPATH= cd -- "$test_dir/.." && pwd)
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 cc -std=c99 -Wall -Wextra -Werror -I"$repo_dir/src" \
-    -I"$repo_dir/../libacfutils/src" -c \
+    -I"$repo_dir/src/libacfutils/src" -c \
     "$repo_dir/src/ground_ops_state.c" -o "$test_root/state.o"
 cc -std=c99 -Wall -Wextra -Werror \
-    -I"$repo_dir/../libacfutils/src" -c \
+    -I"$repo_dir/src/libacfutils/src" -c \
     "$test_dir/intl_test_stub.c" -o "$test_root/intl_test_stub.o"
 c++ -std=c++11 -O1 -Wall -Wextra -Werror -I"$repo_dir/src" -I"$repo_dir/src/imgui" \
     "$test_dir/ground_ops_text_fit_test.cpp" "$test_root/state.o" \

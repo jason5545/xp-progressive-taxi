@@ -15,7 +15,7 @@ cc -std=c99 -Wall -Wextra -Werror -I"$repo_dir/src" \
 
 cc -std=c99 -Wall -Wextra -Werror -I"$repo_dir/src" \
     -DBP_ENABLE_RUNTIME_TELEMETRY=1 \
-    -I"$repo_dir/../libacfutils/src" \
+    -I"$repo_dir/src/libacfutils/src" \
     "$repo_dir/src/telemetry.c" "$test_dir/telemetry_test.c" \
     -lm -o "$telemetry_bin"
 "$telemetry_bin" "$telemetry_csv"

@@ -6,7 +6,7 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT HUP INT TERM
 
 cc -std=c99 -Wall -Wextra -Werror \
-    -I"$repo_root/src" -I"$repo_root/../libacfutils/src" \
+    -I"$repo_root/src" -I"$repo_root/src/libacfutils/src" \
     "$repo_root/tests/ground_ops_data_test.c" \
     "$repo_root/tests/intl_test_stub.c" \
     "$repo_root/src/ground_ops_data.c" -lm \

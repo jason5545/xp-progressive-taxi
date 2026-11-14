@@ -54,11 +54,19 @@ roll_off = "static void run_roll_off(void) { switch (bp.step) {\n" + roll_off \
 # untouched.  Keep the compact signatures in-tree so a fresh checkout can run
 # this contract without fetching an object from a contributor's repository.
 mutation_contract = (
+    # ProgressiveTaxi: 70 -> 73. push_guard() aborting a push (bp_run) adds
+    # dr_setf(&drs.axial_force, 0), dr_setf(&drs.rot_force_N, 0) and
+    # dr_setf(&drs.pbrake, 1); BetterPushbackMod's digest was
+    # 9483ab540f2162edb5a9e24da3ce90c6cd4de6dcf806e710284f124b0ce294f6.
     (r"\b(?:dr_set\w*|brakes_set|push_at_speed|turn_nosewheel)\s*\(",
-     70, "9483ab540f2162edb5a9e24da3ce90c6cd4de6dcf806e710284f124b0ce294f6",
+     73, "d08316bb068ffdb64ea38e4eb902f78cab9c70b77e244bc411e43338b0622ad4",
      "dr_setf(&drs.contract_probe, 1);"),
+    # ProgressiveTaxi: 44 -> 45. The extra match is the comparison
+    # "if (bp.step == PB_STEP_PUSHING)" in bp_run (push_guard), not a write;
+    # BetterPushbackMod's digest was
+    # a256eee33495d59c8bc382d0b775d1c5526c06faa642fcedb48c2c76dfc3ce6e.
     (r"bp\.(?:step\s*(?:\+\+|=)|anim\.nosewheel_rot_spd\s*=)",
-     44, "a256eee33495d59c8bc382d0b775d1c5526c06faa642fcedb48c2c76dfc3ce6e",
+     45, "dd94614fe242f1b7812fc06921abb4e5473130d4889d4d2af3f9a46e16717bcd",
      "bp.step++;"),
     (r"dr_getvf32\(&drs\.tire_rot_spd",
      1, "e222170cb70e727ce77d6f61ab4ae8f166220a990c1a5d2c041500b0822e19b6",

@@ -3,7 +3,7 @@ set -eu
 
 test_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH= cd -- "$test_dir/.." && pwd)
-libacfutils_dir=$(CDPATH= cd -- "$repo_dir/../libacfutils" && pwd)
+libacfutils_dir=$(CDPATH= cd -- "$repo_dir/src/libacfutils" && pwd)
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 

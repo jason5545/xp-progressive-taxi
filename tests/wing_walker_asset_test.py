@@ -9,7 +9,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 ASSET_DIR = REPO / "objects" / "wing_walker"
 OBJ_PATH = ASSET_DIR / "wing_walker.obj"
-SIGNAL_DATAREF = "bp/anim/wing_walker_signal"
+SIGNAL_DATAREF = "ptaxi/anim/wing_walker_signal"
 EXPECTED_TEXTURES = ("wing_walker.png", "wing_walker_lit.png")
 EXPECTED_POSES = {
     (0.75, 1.25),

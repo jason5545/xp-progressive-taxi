@@ -123,6 +123,16 @@ python3 -I tools/plan_cli/parity.py --fleet /tmp/fleet.txt --cli tools/plan_cli/
 
 改 `src/planner/` 的演算法時，Python 原型要一起改，對拍必須維持全過。`ptx_path.c` 和 `ptx_plan_from_pose()` 沒有 Python 原型，不在對拍範圍，改了跑 `plan_cli routes`。兩邊刻意用同樣的浮點寫法與走訪順序（`segs.c`、`planner/*.c` 以 `-ffp-contract=off` 編譯）。
 
+### BPM 的回歸測試
+
+```sh
+sh tests/run_all_tests.sh
+```
+
+BPM 自帶的單元／合約測試，路徑已改成用 `src/libacfutils`。在這台 Mac 上有兩組會失敗，跟我們的改動無關：`run_ground_ops_text_fit_tests.sh`（新版 clang 對 imgui 報 `-Wnontrivial-memcall` 等警告，`-Werror` 擋下）、`run_translation_catalog_tests.sh`（寫死 `-DLIN=1`，跟 macOS SDK 的 `strlcpy` 巨集撞名）。`run_all_tests.sh` 是 `set -e`，碰到第一組就停，要看其他組就逐個跑 `tests/run_*.sh`、`tests/*.py`。
+
+`tests/run_nosewheel_status_tests.py` 把 `src/bp.c` 裡控制寫入點（`dr_set*`、`brakes_set`、`turn_nosewheel(`、`bp.step =`）的數量和雜湊鎖死。改到這些地方要一起更新合約的數字和雜湊，並在註解寫為什麼（目前是 `push_guard()` 多的 3 個寫入和 1 個比較）。
+
 ### 離線規劃原型（第 0 步）
 
 `tools/proto/` 是 Python 參考實作，C 規劃核心拿它當對拍基準：

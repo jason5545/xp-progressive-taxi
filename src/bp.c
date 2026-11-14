@@ -4915,7 +4915,7 @@ tug_pos_update(vect2_t my_pos, double my_hdg, bool_t pos_only) {
 /*
  * Returns a spoken reason when the pushback must be abandoned (see
  * STEER_GUARD_* and OVERSPEED_*), NULL otherwise. Runs once per frame while
- * pushing; bp.nw_cmd is what turn_nosewheel() wrote last frame.
+ * pushing; bp.nw_cmd is the nosewheel angle we commanded last frame.
  */
 static const char *
 push_guard(void)

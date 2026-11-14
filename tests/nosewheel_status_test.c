@@ -88,7 +88,7 @@ static void test_rng(void *bytes, size_t count)
 #define DCR_CREATE_F(dr, value, writable, name) \
     do { UNUSED(dr); UNUSED(value); assert(!(writable)); UNUSED(name); } while (0)
 #define DCR_CREATE_VI(dr, value, count, writable, name) \
-    do { UNUSED(dr); assert(strcmp(name, "bp/anim/nosewheel_rotation_status") == 0); \
+    do { UNUSED(dr); assert(strcmp(name, "ptaxi/anim/nosewheel_rotation_status") == 0); \
         registered_snapshot = value; registered_count = count; \
         registered_writable = writable; } while (0)
 static double vect2_dist(vect2_t a, vect2_t b)
