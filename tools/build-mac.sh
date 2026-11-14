@@ -89,6 +89,11 @@ fi
 
 say "建其餘依賴（build_deps，回傳值不採信）"
 ( cd "$LAU" && ./build_deps ) || echo "  build_deps 回傳非零，繼續往下逐一檢查產物"
+# build_deps 每次都會 init 巢狀 submodule mingw-std-threads 並切到 6c2061b，
+# 跟 libacfutils 記錄的 c49f399 不同（c49f399 在 meganz 的 remote 上已經抓不到），
+# 整個 repo 就變 dirty、版本字串多了 -dirty。它只給 Windows 建置用，mac 用不到，
+# 所以建完就 deinit。
+git -C "$LAU" submodule deinit -f mingw-std-threads >/dev/null 2>&1 || true
 
 # 坑 5：curl
 build_curl() {
