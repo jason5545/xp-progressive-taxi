@@ -14,10 +14,11 @@
 */
 /*
  * Copyright 2023 Saso Kiselkov. All rights reserved.
+ * Copyright 2024 Robert Wellinger. All rights reserved.
  */
 
-#ifndef	_BP_H_
-#define	_BP_H_
+#ifndef    _BP_H_
+#define    _BP_H_
 
 #include <XPLMDisplay.h>
 
@@ -25,66 +26,44 @@
 #include <acfutils/types.h>
 
 #include "acf_outline.h"
+#include "clear_signal_gate.h"
 #include "driving.h"
+#include "fast_brake_handoff.h"
+#include "pushback_step.h"
 #include "tug.h"
+#include "wing_walker.h"
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-	PB_STEP_OFF,
-	PB_STEP_TUG_LOAD,
-	PB_STEP_START,
-	PB_STEP_DRIVING_UP_CLOSE,
-	PB_STEP_OPENING_CRADLE,
-	PB_STEP_WAITING_FOR_PBRAKE,
-	PB_STEP_DRIVING_UP_CONNECT,
-	PB_STEP_GRABBING,
-	PB_STEP_LIFTING,
-	PB_STEP_CONNECTED,
-	PB_STEP_STARTING,
-	PB_STEP_PUSHING,
-	PB_STEP_STOPPING,
-	PB_STEP_STOPPED,
-	PB_STEP_LOWERING,
-	PB_STEP_UNGRABBING,
-	PB_STEP_WAITING4OK2DISCO,
-	PB_STEP_MOVING_AWAY,
-	PB_STEP_CLOSING_CRADLE,
-	PB_STEP_STARTING2CLEAR,
-	PB_STEP_MOVING2CLEAR,
-	PB_STEP_CLEAR_SIGNAL,
-	PB_STEP_DRIVING_AWAY
-} pushback_step_t;
-
 typedef struct {
-	int		nw_i;		/* nose gear index the gear tables */
-	double		nw_z;		/* nose gear long offset (meters) */
-	double		main_z;		/* main gear long offset (meters) */
-	double		nw_len;		/* nose gear leg length (meters) */
-	unsigned	nw_type;	/* nosewheel gear arrangement type */
-	double		tirrad;		/* nosewheel tire radius (meters) */
-	int		n_gear;		/* number of gear */
-	int		gear_is[10];	/* gear index in the gear tables */
+    int nw_i;        /* nose gear index the gear tables */
+    double nw_z;        /* nose gear long offset (meters) */
+    double main_z;        /* main gear long offset (meters) */
+    double nw_len;        /* nose gear leg length (meters) */
+    unsigned nw_type;    /* nosewheel gear arrangement type */
+    double tirrad;        /* nosewheel tire radius (meters) */
+    int n_gear;        /* number of gear */
+    int gear_is[10];    /* gear index in the gear tables */
 
-	/*
-	 * The following flags are extracted from the aircraft's .acf file
-	 * at boot.
-	 */
-	struct {
-		bool_t	is_airliner;		/* acf/_is_airliner */
-		bool_t	is_experimental;	/* acf/_is_experimental */
-		bool_t	is_general_aviation;	/* acf/_is_general_aviation */
-		bool_t	is_glider;		/* acf/_is_glider */
-		bool_t	is_helicopter;		/* acf/_is_helicopter */
-		bool_t	is_military;		/* acf/_is_military */
-		bool_t	is_sci_fi;		/* acf/_is_sci_fi */
-		bool_t	is_seaplane;		/* acf/_is_seaplane */
-		bool_t	is_ultralight;		/* acf/_is_ultralight */
-		bool_t	is_vtol;		/* acf/_is_vtol*/
-		bool_t	fly_like_a_helo;	/* acf/_fly_like_a_helo */
-	} model_flags;
+    /*
+     * The following flags are extracted from the aircraft's .acf file
+     * at boot.
+     */
+    struct {
+        bool_t is_airliner;        /* acf/_is_airliner */
+        bool_t is_experimental;    /* acf/_is_experimental */
+        bool_t is_general_aviation;    /* acf/_is_general_aviation */
+        bool_t is_glider;        /* acf/_is_glider */
+        bool_t is_helicopter;        /* acf/_is_helicopter */
+        bool_t is_military;        /* acf/_is_military */
+        bool_t is_sci_fi;        /* acf/_is_sci_fi */
+        bool_t is_seaplane;        /* acf/_is_seaplane */
+        bool_t is_ultralight;        /* acf/_is_ultralight */
+        bool_t is_vtol;        /* acf/_is_vtol*/
+        bool_t fly_like_a_helo;    /* acf/_fly_like_a_helo */
+    } model_flags;
 } acf_t;
 
 
@@ -95,56 +74,63 @@ typedef struct {
  * checking any pre-existing state. Use bp_long_state_t for that.
  */
 typedef struct {
-	vehicle_t       veh;            /* our driving params */
-	acf_t           acf;            /* aux params of aircraft gear */
+    vehicle_t veh;            /* our driving params */
+    acf_t acf;            /* aux params of aircraft gear */
 
-	struct {
-		vect2_t start_acf_pos;
-		bool_t  pbrk_rele_called;
-		bool_t  pbrk_set_called;
-		bool_t  complete;
-	} winching;
+    struct {
+        vect2_t start_acf_pos;
+        bool_t pbrk_rele_called;
+        bool_t pbrk_set_called;
+        bool_t complete;
+    } winching;
 
-	vehicle_pos_t	cur_pos;
-	vehicle_pos_t	last_pos;
+    vehicle_pos_t cur_pos;
+    vehicle_pos_t last_pos;
 
-	double		cur_t;          /* current time in seconds */
-	double		last_t;         /* cur_t from previous run */
-	double		last_mis_hdg;   /* previous steering misalignment */
+    double cur_t;          /* current time in seconds */
+    double last_t;         /* cur_t from previous run */
+    double last_mis_hdg;   /* previous steering misalignment */
 
-	/* deltas from last_* to cur_* */
-	vehicle_pos_t	d_pos;          /* delta from last_pos to cur_pos */
-	double		d_t;            /* delta time from last_t to cur_t */
+    /* deltas from last_* to cur_* */
+    vehicle_pos_t d_pos;          /* delta from last_pos to cur_pos */
+    double d_t;            /* delta time from last_t to cur_t */
 
-	double		last_steer;
-	double		last_force;
-	double		tug_weight_force;
+    double last_steer;
+    double last_force;
+    bool_t pause_requested;
+    bool_t pause_hold;
+    bool_t stop_from_pause_hold;
+    bool_t awaiting_plan;
+    double tug_weight_force;
 
-	pushback_step_t	step;		/* current PB step */
-	double		step_start_t;	/* PB step start time */
-	double		last_voice_t;	/* last voice message start time */
+    pushback_step_t step;        /* current PB step */
+    double step_start_t;    /* PB step start time */
+    double last_voice_t;    /* last voice message start time */
+    bp_fast_brake_handoff_t fast_brake_handoff;
+    bool_t fast_brakes_relinquished;
 
-	double		reverse_t;	/* when reversing direction */
+    double reverse_t;    /* when reversing direction */
 
-	bool_t		ok2disco;	/* user has ok'd disconnection */
-	bool_t		reconnect;	/* user has requested reconnection */
+    bool_t ok2disco;    /* user has ok'd disconnection */
+    bool_t reconnect;    /* user has requested reconnection */
+    bp_clear_signal_gate_t clear_signal_gate;
 
-	vect2_t		start_pos;	/* where the pushback originated */
-	double		start_hdg;	/* which way we were facing at start */
+    vect2_t start_pos;    /* where the pushback originated */
+    double start_hdg;    /* which way we were facing at start */
 
-	list_t		segs;
-	bool_t		last_seg_is_back;
-	double		last_hdg;
+    list_t segs;
+    bool_t last_seg_is_back;
+    double last_hdg;
 
-	bool_t		light_warn;
+    bool_t light_warn;
 
-	double		nw_cmd;		/* last nosewheel steer we commanded */
-	double		steer_bad_t;	/* secs the nosewheel ignored us */
-	double		overspd_t;	/* secs above the speed limit */
+    double nw_cmd;        /* last nosewheel steer we commanded */
+    double steer_bad_t;   /* secs the nosewheel ignored us */
+    double overspd_t;     /* secs above the speed limit */
 
-	struct {
-		float	nosewheel_rot_spd;	/* rad/sec */
-	} anim;
+    struct {
+        float nosewheel_rot_spd;    /* rad/sec */
+    } anim;
 } bp_state_t;
 
 /*
@@ -152,37 +138,120 @@ typedef struct {
  * a longer time than bp_state_t (which is wiped every time in bp_state_init).
  */
 typedef struct {
-	XPLMWindowID	disco_win;
-	XPLMWindowID	recon_win;
-	tug_t		*tug;
-	acf_outline_t	*outline;	/* size & outline of aircraft shape */
+    XPLMWindowID disco_win;
+    XPLMWindowID recon_win;
+    XPLMWindowID planner_win;
+    XPLMWindowID start_pb_win;
+    XPLMWindowID pb_status_win;
+    XPLMWindowID conn_tug_first;
+    tug_t *tug;
+    wing_walker_t *wing_walker;
+    acf_outline_t *outline;    /* size & outline of aircraft shape */
 } bp_long_state_t;
+
+typedef struct {
+    bool_t active;
+    bool_t requested;
+    bool_t pause;
+    float angle;
+    bool_t forward_direction;
+    bool_t with_yoke;
+} push_manual_t;
 
 extern bp_state_t bp;
 extern bp_long_state_t bp_ls;
+extern push_manual_t push_manual;
+
+
 
 void bp_boot_init(void);
+
 void bp_shut_fini(void);
 
+/* Version-1 nosewheel status reasons; internal lifecycle API, not a DLL ABI. */
+typedef enum {
+    BP_NW_NONE = 0,
+    BP_NW_NORMAL_COMPLETE = 1,
+    BP_NW_SOFT_END = 2,
+    BP_NW_HARD_ABORT = 3,
+    BP_NW_AIRCRAFT_RESET = 4,
+    BP_NW_PROVIDER_DISABLED = 5,
+    BP_NW_CORE_RELOAD = 6,
+    BP_NW_INITIALIZATION_FAILED = 7,
+    BP_NW_INVALID_GEOMETRY = 8,
+    BP_NW_INVALID_RATE = 9,
+    BP_NW_TIME_RESET = 10,
+    BP_NW_UNSUPPORTED_SLAVE = 11,
+    BP_NW_DEBUG_MODE = 12,
+    BP_NW_CONTRACT_NOT_READY = 13,
+    BP_NW_CONTROLLER_FAILURE = 14
+} bp_nosewheel_status_reason_t;
+
+void bp_nosewheel_status_enable(void);
+void bp_nosewheel_status_invalidate(bp_nosewheel_status_reason_t reason);
+
 bool_t bp_init(void);
+
 void bp_fini(void);
 
 bool_t bp_start(void);
+
 bool_t bp_stop(void);
 
+bool_t bp_request_pause(void);
+
+bool_t bp_request_resume(void);
+
+bool_t bp_pause_is_requested(void);
+
+bool_t bp_pause_is_held(void);
+
+bool_t bp_is_awaiting_plan(void);
+
+bool_t bp_can_replan(void);
+
+void bp_get_ground_ops_metrics(double *speed_mps, bool_t *speed_valid,
+    double *distance_remaining_m, bool_t *distance_valid);
+
 bool_t bp_can_start(const char **reason);
+
 unsigned bp_num_segs(void);
+
 void bp_delete_all_segs(void);
 
 bool_t acf_is_compatible(void);
+
+bool_t acf_doors_closed(bool_t);
+
 bool_t acf_is_airliner(void);
+
 void read_acf_airline(char airline[1024]);
+
 bool_t find_nearest_airport(char icao[8]);
+bool_t find_nearest_airport_at(double latitude, double longitude,
+    char icao[8]);
+
+bool_t audio_sys_init(void);
+
+void main_intf(bool_t);
+
+void main_intf_hide(void);
+
+void main_intf_reposition(void);
+
+void manual_bp_start(void);
+void manual_bp_request(bool_t);
+void manual_bp_stop(void);
+bool_t manual_bp_is_running(void);
 
 extern bool_t late_plan_requested;
 
-#ifdef	__cplusplus
+extern bool_t tug_starts_next_plane;
+extern bool_t tug_auto_start;
+extern bool_t tug_pending_mode;
+
+#ifdef    __cplusplus
 }
 #endif
 
-#endif	/* _BP_H_ */
+#endif    /* _BP_H_ */

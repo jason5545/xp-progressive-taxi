@@ -16,28 +16,29 @@
  * Copyright 2017 Saso Kiselkov. All rights reserved.
  */
 
-#ifndef	_ACF_OUTLINE_H_
-#define	_ACF_OUTLINE_H_
+#ifndef    _ACF_OUTLINE_H_
+#define    _ACF_OUTLINE_H_
 
 #include <acfutils/geom.h>
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 extern "C" {
 #endif
 
 typedef struct {
-	double	semispan;	/* half wingspan (meters) */
-	double	length;		/* total aircraft length (meters) */
-	vect2_t	*pts;		/* outline point coordinates (meters) */
-	vect2_t	wingtip;	/* wingtip position of widest wing */
-	size_t	num_pts;	/* number of elements in `pts' */
+    double semispan;    /* half wingspan (meters) */
+    double length;        /* total aircraft length (meters) */
+    vect2_t *pts;        /* outline point coordinates (meters) */
+    vect2_t wingtip;    /* wingtip position of widest wing */
+    size_t num_pts;    /* number of elements in `pts' */
 } acf_outline_t;
 
 acf_outline_t *acf_outline_read(const char *filename);
+
 void acf_outline_free(acf_outline_t *outline);
 
-#ifdef	__cplusplus
+#ifdef    __cplusplus
 }
 #endif
 
-#endif	/* _ACF_OUTLINE_H_ */
+#endif    /* _ACF_OUTLINE_H_ */

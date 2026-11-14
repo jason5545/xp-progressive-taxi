@@ -14,10 +14,11 @@
 */
 /*
  * Copyright 2017 Saso Kiselkov. All rights reserved.
+ * Copyright 2024 Robert Wellinger. All rights reserved.
  */
 
-#ifndef	_BP_XPLANE_H_
-#define	_BP_XPLANE_H_
+#ifndef    _BP_XPLANE_H_
+#define    _BP_XPLANE_H_
 
 #include <stdlib.h>
 
@@ -29,6 +30,8 @@
 #include <acfutils/geom.h>
 #include <acfutils/list.h>
 
+#include "interface_mode.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,31 +41,81 @@ extern const char *const bp_plugindir;
 extern bool_t bp_started;
 extern bool_t bp_connected;
 extern bool_t slave_mode;
+extern bool_t pb_set_remote;
+extern bool_t pb_set_override;
 extern bool_t op_complete;
-extern bool_t plan_complete;
+extern bool_t plan_complete; /* BP_DATAREF plan_complete */
+extern bool_t planner_open;  /* BP_DATAREF planner_open */
 extern char bp_tug_name[64];
-
+extern float bp_ground_crew_audio_volume ;
 extern airportdb_t *airportdb;
 
 extern int bp_xp_ver, bp_xplm_ver;
 extern XPLMHostApplicationID bp_host_id;
 
+extern XPLMCommandRef start_pb, start_cam, conn_first, stop_pb, pause_pb;
+extern XPLMCommandRef call_emergency_tow;
+extern bool_t  start_pb_plan_enable, start_pb_enable;
+
+/*
+ * Renamed so that this fork can be installed side-by-side with the original
+ * BetterPushback (signature "skiselkov.BetterPushback"). See AGENTS.md.
+ */
+#define BP_PLUGIN_NAME          "ProgressiveTaxi-" BP_PLUGIN_VERSION
+#define BP_PLUGIN_SIG           "jason5545.ProgressiveTaxi"
+#define BP_PLUGIN_DESCRIPTION   "Automated pushback and progressive taxi " \
+    "(fork of BetterPushback / BetterPushbackMod)"
+#define ORIG_BP_PLUGIN_SIG      "skiselkov.BetterPushback"
+
+// Internal Log Level
+#define BP_INFO_LOG  "[I] "
+#define BP_WARN_LOG  "[W] "
+#define BP_ERROR_LOG "[E] "
+#define BP_FATAL_LOG "[F] "
+
+#define CAMERA_TIMEOUT 1
+#define CAMERA_IS_OFF -1
+
 /*
  * X-Plane-specific plugin hooks.
  */
 PLUGIN_API int XPluginStart(char *name, char *sig, char *desc);
+
 PLUGIN_API void XPluginStop(void);
+
 PLUGIN_API int XPluginEnable(void);
+
 PLUGIN_API void XPluginDisable(void);
+
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID from, int msg, void *param);
 
 void bp_reconnect_notify(void);
+
+void bp_emergency_tow_planner_notify(void);
+
+void bp_emergency_tow_session_end_notify(bool_t completed);
+
 void bp_done_notify(void);
+
 const char *bp_get_lang(void);
+
 void bp_sched_reload(void);
+
+bp_interface_mode_t bp_get_interface_mode(void);
+
+bool_t bp_set_interface_mode(bp_interface_mode_t mode);
+
+void bp_request_legacy_magic_squares_reposition(void);
+
+bool_t get_pref_widget_status(void);
+
+void set_pref_widget_status(bool_t active);
+
+void enable_replanning(void);
+void disable_replanning(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/* _BP_XPLANE_H_ */
+#endif    /* _BP_XPLANE_H_ */

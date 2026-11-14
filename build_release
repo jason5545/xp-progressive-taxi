@@ -15,18 +15,39 @@
 
 # Copyright 2022 Saso Kiselkov. All rights reserved.
 
-CMAKE_OPTS_COMMON="-DCMAKE_BUILD_TYPE=Release"
+# Some Cleanup's
+
+# Delivery File Name
+version=$(git describe --abbrev=0 --tags)
+version="${version//v/}"
+version="${version//V/}"
 
 # Distribution folder / plugin name. Renamed from BetterPushback so both can
 # be installed side-by-side (see AGENTS.md).
-DIST="ProgressiveTaxi"
+export DIST="ProgressiveTaxi"
+
+ZIP_DELIVERY_FILE="${DIST}_V${version}.zip"
+
+rm -rf ${DIST}_*.zip
+rm -rf mac_x64
+rm -rf win_x64
+rm -rf lin_x64
+
+CMAKE_OPTS_COMMON="-DCMAKE_BUILD_TYPE=Release"
 
 DIST_FILES=(
+    'BetterPushback_doors.cfg'					''
+    'plg_exclude.cfg'					''
     'COPYING'					''
     'data/msgs/README.txt'			''
     'data/msgs/cc_aliases.cfg'			''
     'objects/tugs/LIVERIES_HOWTO.txt'		''
+	'objects/tugs/readme.txt'		''
     'objects/night_lamp.obj'			''
+    'objects/wing_walker/ATTRIBUTION.txt'	''
+    'objects/wing_walker/wing_walker.obj'	''
+    'objects/wing_walker/wing_walker.png'	''
+    'objects/wing_walker/wing_walker_lit.png'	''
 )
 
 function install_xtra_file() {
@@ -100,6 +121,10 @@ function install_icon_files() {
 			install_xtra_file "$DIR/$FILE" ""
 		done
 	done
+	install_xtra_file "data/icons/en/planner.png" ""
+	install_xtra_file "data/icons/en/push-back.png" ""
+	install_xtra_file "data/icons/en/conn_first_mb.png" ""
+	install_xtra_file "data/icons/en/status.png" ""
 }
 
 function install_tug_files() {
@@ -112,89 +137,44 @@ function install_tug_files() {
 }
 
 function install_po_files() {
+	xgettext --keyword=_ --language=C  -j -i -o data/po/strings.pot src/*.c
 	FILES=( $( find data/po -iname '*.po' ) )
 	for FILE in ${FILES[@]}; do
 		install_xtra_file "$FILE" ""
 	done
 }
 
-while getopts "nh" o; do
-	case "${o}" in
-	n)
-		if [[ $(uname) != "Darwin" ]]; then
-			echo "Codesigning and notarization can only be done" \
-			    "on macOS" >&2
-			exit 1
-		fi
-		notarize=1
-		;;
-	h)
-		cat << EOF
-Usage: $0 [-nh]
-    -n : (macOS-only) Codesign & notarize the resulting XPL after build
-         Note: requires that you create a file named user.make in the
-         notarize directory with DEVELOPER_USERNAME and DEVELOPER_PASSWORD
-         set. See notarize/notarize.make for more information.
-    -h : show this help screen and exit.
-EOF
-		exit
-		;;
-	*)
-		echo "Unknown option $o. Try $0 -h for help." >&2
-		exit 1
-		;;
-	esac
-done
+function install_font_files() {
+	FILES=( $( find data/fonts -iname '*.otf' -or -iname '*.ttf' ) )
+	for FILE in ${FILES[@]}; do
+		install_xtra_file "$FILE" ""
+	done
+}
+
+function install_override_files() {
+	FILES=( $( find objects/override -iname '*.acf' ) )
+	for FILE in ${FILES[@]}; do
+		install_xtra_file "$FILE" ""
+	done
+}
+
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
 
 set -e
 
-# We'll try to build on N+1 CPUs we have available. The extra +1 is to allow
-# for one make instance to be blocking on disk.
-HOST_OS="$(uname)"
-if [[ "$HOST_OS" = "Darwin" ]]; then
-	NCPUS=$(( $(sysctl -n hw.ncpu) + 1 ))
-else
-	NCPUS=$(( $(grep 'processor[[:space:]]\+:' /proc/cpuinfo  | wc -l) + \
-	    1 ))
-fi
-
-case `uname` in
-Linux)
-	( cd src && rm -f CMakeCache.txt && \
-	    cmake $CMAKE_OPTS_COMMON -DCMAKE_TOOLCHAIN_FILE=XCompile.cmake \
-	    -DHOST=x86_64-w64-mingw32 . && make clean && make -j${NCPUS} &&
-	    rm -f libProgressiveTaxi.xpl.dll.a )
-	( cd src && rm -f CMakeCache.txt && cmake $CMAKE_OPTS_COMMON . \
-	    && make clean && make -j${NCPUS} )
-	strip {win_x64,lin_x64}/ProgressiveTaxi.xpl
-	cp -r {win_x64,lin_x64} "$DIST"
-	;;
-Darwin)
-	# MACOSX_DEPLOYMENT_TARGET is set by tools/build-mac.sh; default 12.0.
-	( cd src && rm -f CMakeCache.txt && cmake $CMAKE_OPTS_COMMON \
-	    -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-12.0}" . \
-	    && make clean && make -j${NCPUS} )
-	if [ -n "$notarize" ]; then
-		make -f notarize/notarize.make notarize
-	fi
-	# Copy only our own binary: a stale BetterPushback.xpl left in
-	# mac_x64 by an older build must never end up next to it.
-	mkdir -p "$DIST/mac_x64"
-	cp mac_x64/ProgressiveTaxi.xpl "$DIST/mac_x64/"
-	;;
-*)
-	echo "Unsupported platform" >&2
-	exit 1
-	;;
-esac
+# No -f: we build the macOS plugin only (BetterPushbackMod's -f also
+# cross-compiles Windows/Linux in Docker).
+set --
+source ./build_xpl.sh
 
 install_xtra_files
 install_po_files
 install_audio_files
 install_icon_files
 install_tug_files
+install_override_files
+install_font_files
 
 set +e

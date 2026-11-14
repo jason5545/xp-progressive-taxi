@@ -1,0 +1,523 @@
+# Ground Operations UI Design
+
+Status: contributor-tested corrections; final owner review pending
+Last updated: 2026-09-16
+
+Final local test evidence and platform limitations are recorded in
+`OWNER_REVIEW_CHECKLIST.md`. SDK modernization remains a separate advisory
+proposal in `SDK_440_REVIEW.md`; it is not implemented by these UI changes.
+
+## Purpose
+
+The ground operations interface must add immersion and control without covering
+the cockpit. It is a compact operational companion to the existing overhead
+planner, not a replacement for the planner and not a continuously running AI
+dashboard.
+
+The approved interaction is:
+
+1. Hidden when no ground operation is relevant.
+2. A narrow five-stage progress rail while the workflow is active.
+3. A narrow vertical panel when the pilot clicks the rail.
+4. Back to the rail when the pilot collapses the panel.
+5. The existing overhead planner opens only when route review or editing is
+   requested.
+
+The startup workflow is fixed: display parsed airport context and a yellow
+**Call tug** action immediately. There is no artificial dispatch timer. When
+the pilot presses the button, the ground crew approaches and captures the nose
+gear automatically, then stops before lift at the yellow **Plan push** gate.
+Accepting a plan releases the controller into the lift and push sequence.
+
+The pilot always controls whether the information panel is expanded. Normal
+state changes must update the compact rail but must not unexpectedly cover the
+cockpit.
+
+## Design principles
+
+- **Screen discipline:** the persistent presentation is the compact rail, not
+  the panel.
+- **One current task:** the expanded panel shows the action required now rather
+  than a dashboard of every possible value.
+- **Deterministic behavior:** proposed routes and status changes must explain
+  their source; no opaque AI decision controls the aircraft.
+- **Manual escape path:** the existing planner remains available at every
+  planning decision.
+- **Safety before convenience:** pause, safety hold, cancel, and abort are
+  distinct operations.
+- **Offline first:** network connectivity must never prevent an ordinary
+  manual pushback.
+- **No physics regression:** motion uses the upstream legacy planner,
+  `drive_segs` steering, turn/endpoint behavior, and tug approach geometry.
+  Ground Operations does not modify that path.
+
+## Window modes
+
+### Hidden
+
+- No visible X-Plane window and no UI draw callback.
+- Available before a ground operation through the plugin menu and a command.
+- Applies only after a pilot hides the window during the current simulator
+  session. The next simulator/plugin connection always starts visible.
+- The startup presentation follows the ground-speed gate: it hides while the
+  aircraft is taxiing and restores when the aircraft is stopped on the ground.
+- A later pilot **Show** command is authoritative and can keep the presentation
+  visible while moving; **Hide** removes that manual override.
+
+### Compact progress rail
+
+- Default active mode.
+- Standard size on Windows/Linux is 58 by 244 boxels. Large is 73 by 305 and
+  Extra large is 87 by 366. macOS retains its proportional 1.35 platform
+  scale, including text and hit targets, before applying the selected user
+  size.
+- Contains the same Tug, Connect, Comms, Push, and Clear nodes used by the
+  expanded panel, without any additional dashboard content.
+- Completed stages are filled green. The current stage is bright green while
+  automatic ground-crew or tug work is progressing, and amber/orange only while
+  progress is blocked on a required pilot action. Future stages remain outlined
+  in cyan.
+- Entire rail is clickable.
+- A click expands the narrow panel.
+- Dragging moves the rail without expanding it. The implementation must use a
+  small movement threshold to distinguish a click from a drag.
+- Compact mode has no tooltips and never expands from hover; click to expand.
+- With the global **Auto-expand for pilot actions** preference enabled, a new
+  required action other than **Call tug** or **Call tow back** expands a
+  visible compact rail. The panel collapses one second after the action clears
+  whether it was expanded automatically or by the pilot. Hidden windows remain
+  hidden, and a new action during the delay cancels the pending collapse. With
+  the preference disabled, presentation changes remain entirely manual.
+- Red is reserved for a future explicit fault or safety-stop state reported by
+  the controller. Normal pilot gates, deliberate pause holds, disconnect
+  approval, and destructive alternatives do not make a stage red.
+- No timer-based animation may imply progress while the operation is waiting.
+
+### Expanded panel
+
+- Standard size on Windows/Linux is 292 by 420 boxels. Large is 365 by 525 and
+  Extra large is 438 by 630. macOS retains its proportional 1.35 platform
+  scale, including text and hit targets, before applying the selected user
+  size.
+- Narrow vertical layout with a five-stage rail on the left.
+- The upper-left grip/title region moves the window.
+- Drawn pop-out/in, minus and close controls do not depend on font glyphs.
+- Click minus, dwell over minus for one uninterrupted second, or click the
+  progress rail to collapse. Brief flyovers/dragging do not collapse the panel.
+- First collapse docks to the nearest left/right edge. Compact resting
+  positions are movable and remembered per window mode, monitor and side.
+- When the rail touches the left edge, the panel expands rightward. When it
+  touches the right edge, the panel expands leftward. The whole window is
+  constrained to the available monitor bounds when it fits. Native pop-out
+  recovery waits for the geometry to settle so cross-monitor dragging works.
+- Only the content for the current state is rendered.
+
+The panel is divided into:
+
+1. **Title:** Ground operations, flight identity, and current status.
+2. **Briefing strip:** airport, simulator wind and temperature, and QNH.
+3. **Stage rail:** Tug, Connect, Comms, Push, Clear.
+4. **Current-task area:** status, explanation, and valid actions.
+5. **Source footer:** data provenance and offline state.
+
+### Planner transition
+
+- Clicking Manual planner or Edit opens the existing overhead planner.
+- The panel collapses to the compact rail before the planner camera opens.
+- The compact rail is hidden while the overhead planner owns the screen.
+- Closing the planner restores the previous panel mode unless the workflow has
+  advanced to a state that requires a different presentation.
+- The planner remains the authoritative manual route editor.
+
+## Positioning and monitors
+
+The interface will use a modern `XPImgWindow` window. The included window layer
+already supports floating, pop-out, and VR modes through `WndMode`.
+
+Required behavior:
+
+- Free movement inside X-Plane.
+- Pop out into a first-class operating-system window.
+- Move the popped-out window to another monitor.
+- Return the window to X-Plane without losing the workflow state.
+- Remember floating and popped-out geometry separately.
+- Validate saved coordinates against the currently connected monitors.
+- Recover to a visible default position if a remembered monitor no longer
+  exists.
+- Respect X-Plane UI scaling and high-DPI coordinates.
+
+Persisted UI state covers:
+
+- current presentation mode plus the last visible compact or panel mode;
+- floating geometry;
+- popped-out operating-system geometry;
+- preferred monitor.
+
+Platform scale is selected at build time. Windows/Linux use 1.0; macOS uses
+1.35. The user preference then applies a 1.0, 1.25, or 1.5 multiplier to the
+complete interface. A development build can enable `BP_EMULATE_MAC_UI_SCALE`.
+
+Exact key names are an implementation detail, but configuration migration must
+be backward compatible.
+
+At startup, a saved compact or expanded presentation is restored visibly. A
+saved hidden presentation restores the last visible presentation instead. If
+no visible history exists, as on a first install or migration from an older
+hidden state, the expanded panel is the default. Startup visibility is automatic,
+so the ground-speed gate may hide the window while taxiing and restore it after
+the aircraft stops. An explicit pilot Show/Hide choice remains authoritative.
+
+## Workflow stages and existing pushback states
+
+The UI uses a stable five-stage model and maps the more detailed controller
+states into it. The UI must never infer motion merely from a caption string.
+
+| Existing state | UI stage | Live status | Pilot action/control |
+| --- | --- | --- | --- |
+| `PB_STEP_OFF` | Tug/pre-push | Controller idle or the active pre-push state | Defined by the pre-push state |
+| `PB_STEP_TUG_LOAD` | Tug | Selecting a compatible tug | No |
+| `PB_STEP_START` | Tug | Ground crew dispatching tug, or Tug standing by | No |
+| `PB_STEP_DRIVING_UP_CLOSE` | Tug | Tug approaching aircraft | No |
+| `PB_STEP_WAITING_FOR_DOORS` | Tug | Ground crew clearing aircraft service | No amber gate in the automatic connection workflow |
+| `PB_STEP_OPENING_CRADLE` | Tug | Preparing the tug cradle | No |
+| `PB_STEP_WAITING_FOR_PBRAKE` | Connect | Ground crew connection checks | Automatically secured; no pilot gate in connect-first workflow |
+| `PB_STEP_DRIVING_UP_CONNECT` | Connect | Positioning tug to connect | No |
+| `PB_STEP_GRABBING` | Connect | Securing the nose gear | No |
+| `PB_STEP_LIFTING` | Comms while awaiting plan, then Connect while lifting | Tug connected; plan the push, then Lifting the nose gear | Amber Plan push after capture and before lift |
+| `PB_STEP_CONNECTED` | Comms | Ready for brake release, or late plan required | Change plan while the parking brake is set; otherwise release brake or complete plan |
+| `PB_STEP_STARTING` | Push | Starting pushback | No |
+| `PB_STEP_PUSHING` | Push | Pushback in progress, Pausing, or Pushback paused | Pause/Resume plus confirmed End operation |
+| `PB_STEP_STOPPING` | Push | Stopping the aircraft | No |
+| `PB_STEP_STOPPED` | Push | Aircraft stopped | Yes: set parking brake |
+| `PB_STEP_LOWERING` | Clear | Lowering the nose gear | No |
+| `PB_STEP_UNGRABBING` | Clear | Releasing the nose gear | No |
+| `PB_STEP_WAITING4OK2DISCO` | Clear | Ready to disconnect | Manual mode: **Disconnect tug** or **Reconnect** in the Ground Operations panel; automatic mode approves disconnect without pilot input |
+| `PB_STEP_MOVING_AWAY` | Clear | Tug moving clear | No |
+| `PB_STEP_CLOSING_CRADLE` | Clear | Closing the tug cradle | No |
+| `PB_STEP_STARTING2CLEAR` | Clear | Driver moving to clear | No |
+| `PB_STEP_MOVING2CLEAR` | Clear | Driver moving to clear | No |
+| `PB_STEP_CLEAR_SIGNAL` | Clear | Clear signal displayed | Manual mode: acknowledge the displayed pin/clear signal; automatic mode acknowledges it internally; both retain the original 15-second minimum |
+| `PB_STEP_DRIVING_AWAY` | Clear | Tug returning to station | Informational: Finalize cockpit checklist |
+
+Pre-push presentation remains separate from `bp.step`:
+
+| Pre-push state | UI stage | Live status |
+| --- | --- | --- |
+| Airport data | Tug | Parsed airport identifier; yellow Call tug action |
+| Planner review | Comms | Reviewing pushback plan |
+| Operation complete | Clear | All five stages complete |
+
+States before `bp_start()`—airport data loaded and ground crew scheduled—
+belong to the new ground-operations controller and must not be forced into
+`bp.step`.
+
+## Current-task views
+
+### Airport context and automatic connection
+
+Displays only active, simulator-local information:
+
+- Assigned flight number, falling back to aircraft type.
+- Departure airport.
+- Simulator wind and temperature.
+- QNH in hPa and inHg.
+
+The Phase 5 local-provider slice parses and displays the nearest airport,
+standard simulator Flight ID when available, and current simulator wind,
+temperature, and QNH. It labels the source and freshness explicitly. EOBT,
+METAR, and ATIS are not part of the active Ground Operations presentation. The
+UI immediately offers the yellow **Call tug** action. After that call,
+approach and capture proceed with no second pilot gate until the controller is
+holding before lift.
+
+The standard Flight ID is preferred when it contains a valid assigned value.
+When it is blank or identical to the aircraft ICAO code, the aircraft ICAO type
+(for example, `B737`) is displayed as the fallback identity. Simulator weather
+uses a fixed, non-rotating three-line briefing layout: airport,
+wind-temperature, and QNH in both hPa and inHg. The panel uses ASCII-safe
+control and stage labels so it does not depend on an icon font. Helper text
+requires a stationary delayed hover, uses no shared hover delay, and is removed
+on the first frame after the pointer leaves the control.
+
+Unavailable active data uses ASCII `--` or an explicit "Unavailable" label.
+The UI must not fabricate a flight identity or weather value.
+
+### Tug staged
+
+- Tug approaching or standing by.
+- Door/GPU/ASU readiness when supported.
+- Towbar or towbarless connection progression.
+- No pilot action until a real action is required.
+
+### Ready for communications
+
+- Primary action: Open interphone.
+- Towbar, bypass-pin, and safety-area status.
+- Captions mirror the relevant ground-crew message.
+- Manual planner remains available.
+
+### Manual push planning
+
+- The overhead planner opens in the original manual-placement workflow. It does
+  not infer a departure direction or seed route geometry from wind or runways.
+- The pilot moves and rotates the planner cursor, clicks to place the desired
+  aircraft pose, and explicitly accepts the completed route.
+- A route already drawn in the current planner session may be preserved.
+- Persistent route reuse is available only when the live nosewheel uniquely
+  matches a published `apt.dat` start within 1 m and 1 degree. Two isolated
+  route slots are available per published gate and compatible aircraft profile.
+- The derived airport database records an ordered manifest of active `apt.dat`
+  inputs, including existence, file size, and modification time. A changed
+  manifest invalidates and rebuilds only the airport database at startup;
+  persistent gate-route slots are stored separately and remain untouched.
+- An arbitrary or saved-situation start remains usable for the current session,
+  but it cannot list, load, save, or modify persistent gate-route slots.
+- The planner's blue legacy route and magenta danger band remain visual
+  review tools and do not claim automatic obstacle clearance.
+
+### Brake release
+
+- Communication action acknowledges the pilot call.
+- The plugin separately verifies the actual parking-brake dataref.
+- Movement cannot begin while the simulator still reports the brake set.
+- The UI explains the mismatch instead of forcing the brake state.
+
+### Push in progress
+
+- Current instruction or tail direction.
+- Actual tug/aircraft speed.
+- Route distance remaining.
+- Overall progress.
+- Pause/Resume and Safety stop.
+
+Pause is a controlled deceleration to a hold. Resume retains the route and
+steering-controller state and uses the proven acceleration ramp. Safety stop is
+a hold with a prominent reason. Cancel/abort is separate and requires explicit
+confirmation because it can terminate the operation.
+
+### Disconnect
+
+- Parking-brake verification.
+- Lowering, towbar/cradle release, and tug movement status.
+- Driver presentation setting: left, ahead, or right.
+- Equipment-clear completion.
+
+Disconnect approval uses the highlighted **PILOT ACTION** card with the task
+**Cleared to disconnect**, a yellow **Disconnect tug** button and secondary
+**Reconnect**. The clear-signal card retains **Verify the clear signal**, with a
+yellow **Acknowledge** button. Required task cards use an amber background,
+yellow heading and left accent. Optional controls retain secondary styling;
+destructive End operation confirmation retains its separate warning treatment.
+
+The global **Auto disconnect when done** preference is off by default and is
+persisted across simulator starts for all aircraft.
+When enabled, the controller takes over only after the requested parking brake
+has been set. It approves the disconnect gate and acknowledges the clear-signal
+gate without pilot input while retaining the physical release sequence, audio,
+side-clear movement, signal presentation, and 15-second minimum display time.
+
+During departure, the neutral **CURRENT TASK** is **Finalize cockpit checklist**.
+After completion all five stages are green; visibility follows the legacy
+ground/speed gate, not an invented completion timer.
+
+Buttons provide hover, pressed and short activation feedback. Preferences has
+a **Button click volume** slider (0-100%, zero mutes), with preview on release.
+Adjustments apply immediately; Save preferences keeps them across reloads.
+Unset volume defaults to 35%; saved values and legacy mute take precedence.
+Click audio uses optional SDK sound functions and does not change crew/tug
+audio. Preferences remains unavailable during an active pushback.
+
+### Emergency return tow
+
+- After a normal operation and final tug departure, the completed view offers
+  the optional blue **Call tow back** action.
+- Emergency Tow is a small session coordinator around the existing
+  connect-first workflow, manual planner, tug physics, and disconnect sequence;
+  it does not duplicate those controllers.
+- Once the nose gear is captured, the planner opens automatically at the live
+  aircraft position with an empty one-time route. Saved-route listing, loading,
+  replacement, and writing are hard-disabled for the entire emergency session.
+- The wing walker is neither allocated nor rendered during Emergency Tow.
+- After the tug disconnects and completes its drive-away, the coordinator ends
+  and Ground Operations returns to the same cold-start **Tug available** state
+  used after a simulator start.
+- A later normal operation again uses the normal published-start guard. If the
+  returned aircraft is off its unique `apt.dat` anchor, the route remains
+  session-only and no cache file can be created or changed.
+
+### Marshaller presentation
+
+- The global **Display marshaller** preference defaults on and prevents object
+  allocation entirely when disabled.
+- The normal-operation position preserves the 30-yard nose clearance and
+  captain-side offset. It is captured when the first visible signal begins,
+  including while asynchronous object loading is still completing.
+- Position and heading remain anchored for the rest of the operation. Aircraft
+  movement after the signal begins cannot pull the marshaller along.
+- The current object heading is rotated 180 degrees from its earlier runtime
+  orientation so the visible character faces the aircraft.
+
+## Data sources and precedence
+
+Each external value carries source, fetched time, and expiry time.
+
+### Flight identity
+
+1. Simulator/aircraft flight-number datarefs when available.
+2. Aircraft ICAO type.
+3. Unavailable.
+
+### Weather
+
+1. Simulator weather for operational calculations.
+2. Unavailable display, while manual planning remains usable.
+
+### Departure-flow context
+
+1. Route explicitly drawn in the current planner session.
+2. One-time coarse flow inferred from X-Plane wind and loaded paved-runway
+   geometry.
+3. No suggestion; open the unchanged manual planner.
+
+Parallel runways are grouped by direction, so the inference can say NORTH or
+SOUTH without choosing a runway. Calm wind, crossing-runway ties, unsupported
+geometry, or an unreachable planner endpoint produce no suggestion.
+
+## UI architecture
+
+The first implementation will add separate ground-operations UI files instead
+of expanding `cfg.cpp`.
+
+Proposed boundaries:
+
+- `ground_ops_state.[ch]`: fixed-size snapshot and pure mapping from plugin
+  state to UI state.
+- `ground_ops_ui.cpp/.h`: `XPImgWindow` compact-rail/panel rendering and local
+  UI intent.
+- Operational button intent is queued out of the draw callback and dispatched
+  through the existing X-Plane command handlers on the manager flight loop.
+- `ground_ops_data.*`: optional cached flight/weather providers added after the
+  inert UI is stable.
+- `emergency_tow.[ch]`: bounded session lifecycle plus the hard persistent-route
+  and wing-walker policy gates; motion and planning remain in existing modules.
+
+The UI reads one immutable `ground_ops_snapshot_t` containing fixed-size or
+preformatted values. It does not walk route lists, parse JSON, probe terrain,
+or read arbitrary datarefs during drawing.
+
+The initial shell was read-only through early Phase 3. The corrected workflow
+adds **Call tug**, **Plan push**, **Pause/Resume**, and confirmed **End
+operation** buttons. Call tug starts the existing connect-first workflow only
+when pressed. Pause commands zero
+speed through the normal deceleration model while retaining route and steering
+state. The stationary hold freezes steering and cannot resume through a set
+parking brake. End operation uses the compatible terminating stop path and
+discards the route only after confirmation.
+
+The global **Pushback interface** preference selects the fork's Ground
+Operations panel or the original **Legacy magic squares** at runtime. The
+selection is global, remembered, and mutually exclusive: only the selected
+interface owns operational windows and update loops. Switching is allowed only
+while the pushback controller and planner are idle.
+
+Legacy mode restores the original per-aircraft **Magic squares position**
+slider. Position changes are queued to the simulator callback and move the
+existing windows without destroying them from inside the Preferences draw
+callback.
+
+The switch affects presentation and pilot interaction only. Automatic
+beacon-triggered tug behavior is evaluated separately, and the shared planner,
+preferences, commands, controller, cache, and tug physics remain available.
+Ground Operations exposes **Disconnect tug**, **Reconnect**, and clear-signal
+acknowledgement in the panel. Legacy mode restores its original floating
+disconnect/reconnect buttons and timed clear-signal departure. If the global
+**Auto disconnect when done** option is enabled, the controller approves the
+post-push gates automatically in either mode.
+
+## Performance contract
+
+- Hidden mode schedules no UI update loop and receives no draw calls.
+- Compact rail and panel use X-Plane's normal window draw callback only while
+  visible.
+- State strings, icons, ring percentage, and button availability update only on
+  snapshot changes.
+- No route prediction, terrain probing, network I/O, JSON parsing, disk I/O, or
+  logging occurs in a draw callback.
+- No recurring network poll is tied to frame rate.
+- After UI warm-up, the draw path performs no plugin-owned heap allocation.
+- The ground-operations coordinator is event-driven and may use a low-rate
+  scheduled tick only while an active workflow requires one.
+
+The Phase 3 implementation quantizes speed to 0.1 m/s and remaining distance to
+whole meters before comparing inputs. Metric-only changes update the snapshot
+without producing semantic transition logs. Captions are always enabled and
+mirror an issued crew message only for that message's audio duration, including
+when simulator sound is disabled.
+
+The late-plan pre-lift hold is exposed explicitly rather than inferred from
+`PB_STEP_LIFTING`: once nose-gear capture is complete, the UI advances to Comms
+and shows the yellow **Plan push** gate while lift position remains zero. After
+plan acceptance, the same legacy enum continues into the physical lift.
+- Any worker thread blocks on a condition variable or timed job and never busy
+  waits.
+- Worker threads never call XPLM APIs. Results cross to the main thread through
+  a bounded queue or immutable snapshot.
+
+Target measured overhead on the reference test system:
+
+| Mode | Average plugin UI CPU target |
+| --- | ---: |
+| Hidden | effectively zero |
+| Compact rail | no more than 0.10 ms per rendered frame |
+| Panel | no more than 0.20 ms per rendered frame |
+
+These are acceptance ceilings, not targets to consume. Lower is expected.
+
+## Failure and recovery behavior
+
+- Network timeout: show cached data if valid, otherwise Unavailable.
+- Malformed response: discard it and retain the last valid snapshot.
+- Missing flight plan: retain full manual functionality.
+- Missing monitor: restore on the primary X-Plane monitor.
+- Aircraft reload: close unsafe actions, rebuild aircraft context, and retain
+  only safe window preferences.
+- Plugin reload: do not resume a partially connected or moving tug.
+- UI exception or failed allocation: hide the new UI and leave classic menu
+  commands available.
+- Planner prediction failure: retain the existing geometric fallback and log a
+  bounded diagnostic once per route revision.
+
+## Accessibility and usability
+
+- High-DPI and X-Plane UI scaling supported.
+- Status never depends on color alone; stage labels and text provide the
+  meaning. Completed stages are green, an automatically progressing current
+  stage is bright green, a pilot-blocked current stage is amber/orange, and
+  future stages are cyan. No separate warning badge is drawn.
+- Compact rail labels use locale-specific short forms that fit the fixed rail
+  width at every supported scale. Full translated wording belongs in the
+  expanded status and task regions; a long translation must never be clipped
+  into a neighboring panel region.
+- Essential controls remain labeled in the panel.
+- Every variable status, detail, caption, task, metric, and action label is
+  measured against its drawing rectangle. Text wraps where appropriate and
+  reduces to a bounded fallback size before drawing so it cannot run outside
+  the panel or its card.
+- Compact-rail hover text provides the current status.
+- Menu commands exist for show/hide, expand/collapse, pause/resume, and safety
+  stop so pilots can bind hardware or keyboard shortcuts.
+- The panel avoids automatic expansion; the yellow current-stage label and
+  voice/caption prompts request attention without implying an error.
+- Text localization uses the existing translation system.
+
+## Explicitly out of scope for the first UI phases
+
+- Large-language-model inference inside the plugin.
+- Continuous AI monitoring.
+- Automatic obstacle detection for buildings, aircraft, or vehicles.
+- Rewriting aircraft FMOD packages.
+- Replacing the tested push controller.
+- Silently issuing or interpreting real ATC clearance.
+
+These items require separate feasibility, licensing, performance, and safety
+work and are not prerequisites for the approved ground-operations experience.

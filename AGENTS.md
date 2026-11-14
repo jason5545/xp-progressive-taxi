@@ -2,7 +2,9 @@
 
 X-Plane 12 插件：按一個鍵選跑道，自動把飛機推到正確的滑行道上、機頭朝向那條跑道；推完接著給 progressive taxi 指示。
 
-這個 repo 是 [skiselkov/BetterPushbackC](https://github.com/skiselkov/BetterPushbackC)（2024/4 封存）的 fork，合進了 [Sowintuu/BetterPushback](https://github.com/Sowintuu/BetterPushback) 2026/10/24 的 3 個修正。拖車、推行、聲音、相容性程式碼沿用 BetterPushback；新增的是自動規劃（選終點、滑行路線）和 progressive taxi。
+這個 repo 是 BetterPushback 的 fork。2026/11/14 起基底換成 [olivierbutler/BetterPusbackMod](https://github.com/olivierbutler/BetterPusbackMod)（BPM，BetterPushback 現在有人維護的版本；用的是 `fast-ground-handling` 分支 b5a5865，也就是 x-plane.org 10/28 發布的 1.16），用 `git merge --allow-unrelated-histories` 合進來（BPM 跟 skiselkov 沒有共同歷史），我們之前的歷史都還在。之前的基底是 [skiselkov/BetterPushbackC](https://github.com/skiselkov/BetterPushbackC)（2024/4 封存）加 [Sowintuu/BetterPushback](https://github.com/Sowintuu/BetterPushback) 的 3 個修正。拖車、推行、聲音、Ground Operations 視窗、相容性程式碼沿用 BPM；新增的是自動規劃（選終點、滑行路線）和 progressive taxi。
+
+要再跟 BPM 上游：`git fetch bpm`（remote 已設 `tagOpt=--no-tags`，不要把 BPM 的 v1.x tag 抓進來，會讓 `git describe` 版本號亂掉），再 `git merge bpm/<分支>`。上游的檔案以 BPM 為準，我們的改動要重新套：改名（下面「並存」那張表）、`src/xplane.c` 的 `ptx_xp_*` 掛勾和 `bp/*` 別名、`src/bp.c` 的推行保護和主輪版 `nearing_end()`、`src/driving.c` 拿掉 `compute_segs`（在 `src/segs.c`）。BPM 的程式是 4 空白縮排、我們的 `ptx_*`、`planner/` 是 tab，各自維持。
 
 授權：CDDL 1.0（`COPYING`）。改到的原檔保留 CDDL 標頭和原作者版權宣告；新檔可以用自己的授權，`COPYING` 不動。
 
@@ -23,10 +25,12 @@ tools/build-mac.sh
 
 1. 用暫存的編譯器包裝建 zlib、libpng（新 SDK 下原版會編譯失敗）。
 2. 跑 libacfutils 的 `build_deps`，帶 `CMAKE_POLICY_VERSION_MINIMUM=3.5`（CMake 4 不再支援舊 CMakeLists）。
-3. curl 沒產出時，關掉 libpsl、隔離 Homebrew 的 pkg-config 重建（不然會吃到 Homebrew 的 OpenSSL 4 標頭）。
+3. curl 沒產出時，關掉 libpsl、隔離 Homebrew 的 pkg-config 重建（不然會吃到 Homebrew 的 OpenSSL 4 標頭）。curl 版本跟著 libacfutils 的 tarball 走（目前 8.13.0）。
 4. **不信任 `build_deps` 的回傳值**：子殼裡 make 失敗不會往上傳，所以逐一檢查每個依賴產物存在、而且是 x86_64＋arm64，缺一個就非零結束。
 5. 用 qmake 建 `libacfutils.a`，再跑 `build_release` 建插件。
 6. 檢查插件：架構、`minos` 等於部署目標、5 個 `XPlugin*` 入口、發行資料夾裡沒有別的 `.xpl`。
+
+`build_release`／`build_xpl.sh` 是 BPM 的版本改的：只建 macOS（BPM 的 `-f` 會用 Docker 交叉編譯 Windows／Linux，我們不用），發行資料夾是 `ProgressiveTaxi/`。BPM 的 C 檔用 `-Wall -Wextra -Werror` 編譯，連註解裡寫 `ptaxi/*` 這種 `/*` 都會被擋。
 
 部署目標預設 `MACOSX_DEPLOYMENT_TARGET=12.0`，要改就在前面設環境變數。
 
@@ -34,7 +38,7 @@ tools/build-mac.sh
 
 - `ProgressiveTaxi/`：發行資料夾，整個複製到 X-Plane 就能用。
 - `mac_x64/ProgressiveTaxi.xpl`：插件本體（universal）。
-- `src/libacfutils/` 底下各依賴的建置目錄、`src/libacfutils/qmake/mac64/libacfutils.a`。
+- `src/libacfutils/` 底下各依賴的建置目錄、`src/libacfutils/qmake/mac64/libacfutils.a`。換了 libacfutils 版本之後，舊的建置產物要先清掉（`git -C src/libacfutils clean -xdf`），不然腳本看到產物存在就不會重建。
 
 版本字串是 `git describe --tags --always --dirty`，會出現在 Log.txt，例如 `ProgressiveTaxi-v0.52-10-g1234abc`。
 
@@ -142,12 +146,14 @@ python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCTP.dat --label RCTP --out tool
 | 插件檔 | `mac_x64/BetterPushback.xpl` | `mac_x64/ProgressiveTaxi.xpl` |
 | signature | `skiselkov.BetterPushback` | `jason5545.ProgressiveTaxi` |
 | 插件名稱 | `BetterPushback-<版本>` | `ProgressiveTaxi-<版本>` |
-| 指令 | `BetterPushback/*` | `ProgressiveTaxi/*`（start、stop、start_planner、stop_planner、connect_first、cab_camera、recreate_scenery_routes、disconnect、reconnect、reload_tug） |
-| dataref | `bp/*` | `ptaxi/*`（started、connected、slave_mode、op_complete、plan_complete、tug_name、anim/*） |
-| 拖車物件動畫 | `bp/anim/*` | `ptaxi/anim/*`（`objects/tugs/*/*.obj` 同步改） |
+| 指令 | `BetterPushback/*` | `ProgressiveTaxi/*`（全部，包括 BPM 新增的 pause_resume、manual_push_*、ground_ops_*、abort_push、call_emergency_tow、preference、reload、acknowledge_clear） |
+| dataref | `bp/*` | `ptaxi/*`（全部，包括 BPM 新增的 planner_open、parking_brake_set、parking_brake_override、ground_crew_audio_volume）；另外用原名發布 `bp/started`、`bp/connected` 別名，見下面 |
+| 物件動畫 | `bp/anim/*` | `ptaxi/anim/*`（`objects/tugs/*/*.obj`、`objects/wing_walker/wing_walker.obj` 同步改） |
 | 設定檔 | `Output/preferences/BetterPushback.cfg` | `Output/preferences/ProgressiveTaxi.cfg` |
 | 路線快取 | `Output/caches/BetterPushback_routes.dat` | `Output/caches/ProgressiveTaxi_routes.dat` |
 | 機場快取 | `Output/caches/BetterPushbackAirports.cache` | `Output/caches/ProgressiveTaxiAirports.cache` |
+| 停機位路線快取（BPM） | `Output/caches/BetterPushback_Gate_Routes/` | `Output/caches/ProgressiveTaxi_Gate_Routes/` |
+| 遙測（BPM，預設不編） | `Output/BetterPushback/telemetry/` | `Output/ProgressiveTaxi/telemetry/` |
 | WED 轉出的場景路線 | `Custom Scenery/*/BetterPushback_routes.dat` | `Custom Scenery/*/ProgressiveTaxi_routes.dat` |
 | Plugins 選單 | Better Pushback | Progressive Taxi |
 | Log.txt 前綴 | `BetterPushback` | `ProgressiveTaxi` |
@@ -155,9 +161,11 @@ python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCTP.dat --label RCTP --out tool
 刻意沒改的：
 
 - FlightFactor A320 的 value object 名稱（`BetterPushbackStart` 等）：那架飛機是用名字找的，改了就失效。原版有裝時讓原版註冊，這個 fork 跳過。
-- 有翻譯的使用者字串（例如「BetterPushback Preferences」、「aircraft is incompatible with BetterPushback」）：改英文原文會讓 6 種語言的翻譯對不上。之後改 UI 時再一起處理。
+- `BetterPushback_doors.cfg`（機型艙門定義，隨插件附帶，也讀 `Output/preferences/` 的同名檔）：跟原版共用格式和使用者自訂檔。
 
-相容性取捨：外部程式如果讀 `bp/started`、`bp/connected` 來判斷有沒有在後推，對這個 fork 會讀不到，要改讀 `ptaxi/*`。
+畫面上的名稱（視窗標題、Reload、選單）改成 Progressive Taxi／ProgressiveTaxi，`data/po/` 的翻譯檔 msgid 一起改，翻譯不會掉。
+
+`bp/started`、`bp/connected` 別名：原版 BetterPushback 加 `bp/connected` 是給飛機外掛「拖車接上時停止自己寫鼻輪」用的（skiselkov/BetterPushbackC#268）。我們在 `XPluginEnable` 用原名註冊這兩個（跟 `ptaxi/*` 同一組變數），原版有載入就不註冊。11/14 實測：FlightFactor 777 v2 光有這兩個還是不讓出鼻輪，FF 實際看什麼未查證。
 
 ## 程式結構（BetterPushback 既有）
 
@@ -167,7 +175,8 @@ python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCTP.dat --label RCTP --out tool
 - `src/bp_cam.c`：原版的手動規劃畫面。
 - `src/wed2route.c`：從 `Custom Scenery/*/earth.wed.xml` 轉出作者定義的後推路線。
 - `src/segs.c`：`compute_segs()`，從 driving.c 原封搬出來，不依賴 X-Plane SDK。
-- `src/libacfutils/`：submodule（v0.37-75-ga4e2070，上游已封存）。`airportdb` 只解析 1300 停機位，不解析 1201/1202 滑行網路。
+- `src/libacfutils/`：submodule，[olivierbutler/libacfutils](https://github.com/olivierbutler/libacfutils) bc0b479（skiselkov a4e2070 之後再 128 個 commit，XP SDK 4.3.0；BPM 指定用這個 fork）。BPM 原本要求 libacfutils 放在 repo 外面的同層資料夾，我們維持 submodule。`airportdb` 只解析 1300 停機位，不解析 1201/1202 滑行網路。
+- BPM 新增的：Ground Operations 視窗（`ground_ops_*`、imgui）、手動推、緊急拖、wing walker、Fast Ground Handling、停機位路線快取（`gate_route_*`）、鼻輪動畫狀態（`nw_*`，給飛機做鼻輪動畫用）。說明在 `README.md` 後半、`USER_GUIDE.md`。
 
 ## 程式結構（這個 fork 新增）
 

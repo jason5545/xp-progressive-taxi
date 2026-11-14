@@ -31,6 +31,7 @@
 #include <acfutils/widget.h>
 #include <acfutils/time.h>
 
+#include "cfg.h"
 #include "bp.h"
 #include "bp_cam.h"
 #include "cab_view.h"
@@ -49,8 +50,8 @@
 #define	HINTBAR_HEIGHT	20
 #define	HINTBAR_TIMEOUT	SEC2USEC(5)
 
-static bool_t started = B_FALSE;
-
+bool_t tug_cam_started = B_FALSE;
+bool_t tug_view_callback_is_alive = B_FALSE;
 /*
  * The delta to the tug's nominal camera position.
  * d_orient is the delta in X (heading) and Y (pitch).
@@ -62,6 +63,7 @@ static XPLMWindowID win = NULL;
 static uint64_t hintbar_start = 0;
 static XPWidgetID hintbar = NULL;
 static dr_t cab_pos_dr;
+static dr_t view_is_external_dr;
 
 static view_cmd_info_t view_cmds[] = {
     VCI_POS("sim/general/left",				-INCR_MED, 0, 0),
@@ -116,7 +118,9 @@ cab_view_init(void)
 {
 	d_pos = ZERO_VECT3;
 	d_orient = ZERO_VECT2;
+	d_orient.x = 180;
 	zoom = 1.0;
+	fdr_find(&view_is_external_dr, "sim/graphics/view/view_is_external");
 }
 
 void
@@ -131,7 +135,12 @@ cab_view_fini(void)
 bool_t
 cab_view_can_start(void)
 {
-	return (!started && bp_started && bp_ls.tug != NULL);
+	/*
+	 * If the current view is external the cab_view is invisible
+	 * but steals mouse events and never resets.
+	 */
+	//bool_t is_external = (bool_t)dr_geti(&view_is_external_dr);
+	return (!tug_cam_started && bp_started && bp_ls.tug != NULL ); // && !is_external);
 }
 
 static int
@@ -142,15 +151,23 @@ cam_ctl(XPLMCameraPosition_t *pos, int losing_control, void *refcon)
 	vect3_t tug_pos, norm, cam_pos, norm_hdg;
 
 	UNUSED(refcon);
-
-	if (pos == NULL || losing_control || !bp_started || !started) {
+	tug_view_callback_is_alive = B_TRUE;
+	
+	if (pos == NULL || losing_control || !bp_started || !tug_cam_started) {
 		cab_view_stop();
 		return (0);
 	}
 
 	probe = XPLMCreateProbe(xplm_ProbeY);
-	VERIFY3U(XPLMProbeTerrainXYZ(probe, bp_ls.tug->pos.pos.x, 0,
-	    -bp_ls.tug->pos.pos.y, &info), ==, xplm_ProbeHitTerrain);
+	//VERIFY3U(XPLMProbeTerrainXYZ(probe, bp_ls.tug->pos.pos.x, 0,
+	//    -bp_ls.tug->pos.pos.y, &info), ==, xplm_ProbeHitTerrain);
+
+	if (XPLMProbeTerrainXYZ(probe, bp_ls.tug->pos.pos.x, 0,
+	    -bp_ls.tug->pos.pos.y, &info)) {
+	    XPLMDestroyProbe(probe);
+    	return (1);
+    }   
+
 	/* Must be upright, no driving on ceilings! */
 	ASSERT3F(info.normalY, >, 0.0);
 
@@ -184,16 +201,25 @@ cam_ctl(XPLMCameraPosition_t *pos, int losing_control, void *refcon)
 static void
 win_draw(XPLMWindowID inWindowID, void *inRefcon)
 {
-	int w, h;
 
 	UNUSED(inWindowID);
 	UNUSED(inRefcon);
-	XPLMGetScreenSize(&w, &h);
-	XPLMSetWindowGeometry(win, 0, h, w, 0);
+	XPLMSetWindowGeometry(win, monitor_def.x_origin, monitor_def.h, monitor_def.w, monitor_def.y_origin);
 
 	if (hintbar != NULL && microclock() - hintbar_start > HINTBAR_TIMEOUT) {
 		XPDestroyWidget(hintbar, 1);
 		hintbar = NULL;
+	}
+
+	if ( bp_ls.tug->pos.spd > 0.1 ) {
+		if  ( (d_orient.x > 90 ) && ( d_orient.x < 270 ) ) {
+			d_orient.x = 0;
+		}
+	}
+	if ( bp_ls.tug->pos.spd < -0.1 ) {
+		if  ( (d_orient.x < 90 ) || ( d_orient.x > 270 ) ) {
+			d_orient.x = 180;
+		}
 	}
 }
 
@@ -297,11 +323,13 @@ cab_view_start(void)
 	 * To avoid aircraft parts clipping over scenery, we need to first
 	 * shift the view to an external one, before controlling the camera.
 	 */
+	eye_track_debut(); 
 	XPLMCommandOnce(XPLMFindCommand("sim/view/circle"));
 
 	XPLMControlCamera(xplm_ControlCameraUntilViewChanges, cam_ctl, NULL);
-	started = B_TRUE;
+	tug_cam_started = B_TRUE;
 
+	initMonitorOrigin();
 	if (win == NULL) {
 		XPLMCreateWindow_t win_ops = {
 		    .structSize = sizeof (XPLMCreateWindow_t),
@@ -313,6 +341,10 @@ cab_view_start(void)
 		    .handleMouseWheelFunc = win_wheel,
 		    .refcon = NULL
 		};
+		win_ops.left = monitor_def.x_origin;
+		win_ops.right = monitor_def.x_origin + monitor_def.w;
+		win_ops.bottom = monitor_def.y_origin;
+		win_ops.top = monitor_def.y_origin + monitor_def.h;
 		win = XPLMCreateWindowEx(&win_ops);
 	}
 	ASSERT(win != NULL);
@@ -325,14 +357,12 @@ cab_view_start(void)
 	 */
 	if (hintbar == NULL) {
 		const char *str = _("Left mouse button to reorient view");
-		int x, y;
 		int w = XPLMMeasureString(xplmFont_Proportional,
 		    str, strlen(str));
 		XPWidgetID caption;
 
-		XPLMGetScreenSize(&x, &y);
-		hintbar = create_widget_rel((x - w) / 2 - 10,
-		    HINTBAR_HEIGHT * 3, B_FALSE, w + 20,
+		hintbar = create_widget_rel((monitor_def.w - w) / 2 - 10,
+		     HINTBAR_HEIGHT * 3, B_FALSE, w + 20,
 		    HINTBAR_HEIGHT, 0, "", 1, NULL, xpWidgetClass_MainWindow);
 		XPSetWidgetProperty(hintbar, xpProperty_MainWindowType,
 		    xpMainWindowStyle_Translucent);
@@ -378,5 +408,6 @@ cab_view_stop(void)
 		}
 	}
 
-	started = B_FALSE;
+	eye_track_fini();
+	tug_cam_started = B_FALSE;
 }

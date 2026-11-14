@@ -28,6 +28,7 @@
 #include <acfutils/icao2cc.h>
 #include <acfutils/intl.h>
 #include <acfutils/log.h>
+#include <acfutils/time.h>
 #include <acfutils/wav.h>
 
 #include "cfg.h"
@@ -35,32 +36,34 @@
 #include "xplane.h"
 
 typedef struct {
-	const char	*const filename;
-	wav_t		*wav;
+    const char *const filename;
+    wav_t *wav;
 } msg_info_t;
 
 static msg_info_t msgs[MSG_NUM_MSGS] = {
-	{ .filename = "plan_start.opus", .wav = NULL },
-	{ .filename = "plan_end.opus", .wav = NULL },
-	{ .filename = "driving_up.opus", .wav = NULL },
-	{ .filename = "ready2conn.opus", .wav = NULL },
-	{ .filename = "ready2conn_nopark.opus", .wav = NULL },
-	{ .filename = "winch.opus", .wav = NULL },
-	{ .filename = "connected.opus", .wav = NULL },
-	{ .filename = "start_pb.opus", .wav = NULL },
-	{ .filename = "start_tow.opus", .wav = NULL },
-	{ .filename = "start_pb_nostart.opus", .wav = NULL },
-	{ .filename = "start_tow_nostart.opus", .wav = NULL },
-	{ .filename = "op_complete.opus", .wav = NULL },
-	{ .filename = "disco.opus", .wav = NULL },
-	{ .filename = "done_right.opus", .wav = NULL },
-	{ .filename = "done_left.opus", .wav = NULL }
+        {.filename = "plan_start.opus", .wav = NULL},
+        {.filename = "plan_end.opus", .wav = NULL},
+        {.filename = "driving_up.opus", .wav = NULL},
+        {.filename = "ready2conn.opus", .wav = NULL},
+        {.filename = "ready2conn_nopark.opus", .wav = NULL},
+        {.filename = "winch.opus", .wav = NULL},
+        {.filename = "connected.opus", .wav = NULL},
+        {.filename = "start_pb.opus", .wav = NULL},
+        {.filename = "start_tow.opus", .wav = NULL},
+        {.filename = "start_pb_nostart.opus", .wav = NULL},
+        {.filename = "start_tow_nostart.opus", .wav = NULL},
+        {.filename = "op_complete.opus", .wav = NULL},
+        {.filename = "disco.opus", .wav = NULL},
+        {.filename = "done_right.opus", .wav = NULL},
+        {.filename = "done_left.opus", .wav = NULL}
 };
 
-bool_t inited = B_FALSE;
+static bool_t inited = B_FALSE;
 static dr_t sound_on;
-static dr_t radio_vol;
 static message_t last_msg = 0;
+static uint64_t message_sequence = 0;
+static uint64_t caption_started_us = 0;
+static bool_t caption_issued = B_FALSE;
 static alc_t *alc = NULL;
 
 /*
@@ -70,255 +73,285 @@ static alc_t *alc = NULL;
  * this is en_GB, which also applies in British overseas territories.
  */
 static void
-alias_cc(const char *cc, char aliased_cc[3])
-{
-	char *path = mkpathname(bp_xpdir, bp_plugindir, "data", "msgs",
-	    "cc_aliases.cfg", NULL);
-	FILE *fp = fopen(path, "r");
-	char cc_in[8], cc_out[8];
+alias_cc(const char *cc, char aliased_cc[3]) {
+    char *path = mkpathname(bp_xpdir, bp_plugindir, "data", "msgs",
+                            "cc_aliases.cfg", NULL);
+    FILE *fp = fopen(path, "r");
+    char cc_in[8], cc_out[8];
 
-	free(path);
-	if (fp == NULL)
-		goto errout;
+    free(path);
+    if (fp == NULL)
+        goto errout;
 
-	while (!feof(fp)) {
-		if (fscanf(fp, "%7s %7s", cc_in, cc_out) != 2)
-			break;
-		if (*cc_in == '#') {
-			int c;
-			do {
-				c = fgetc(fp);
-			} while (c != '\n' && c != '\r' && c != EOF);
-			continue;
-		}
-		if (strcmp(cc, cc_in) == 0) {
-			strlcpy(aliased_cc, cc_out, 3);
-			fclose(fp);
-			return;
-		}
-	}
+    while (!feof(fp)) {
+        if (fscanf(fp, "%7s %7s", cc_in, cc_out) != 2)
+            break;
+        if (*cc_in == '#') {
+            int c;
+            do {
+                c = fgetc(fp);
+            } while (c != '\n' && c != '\r' && c != EOF);
+            continue;
+        }
+        if (strcmp(cc, cc_in) == 0) {
+            strlcpy(aliased_cc, cc_out, 3);
+            fclose(fp);
+            return;
+        }
+    }
 
-	fclose(fp);
-errout:
-	strlcpy(aliased_cc, cc, 3);
+    fclose(fp);
+    errout:
+    strlcpy(aliased_cc, cc, 3);
 }
 
 static char *
-msg_pack_variant_select(char *base)
-{
-	char **variants = NULL;
-	size_t num = 0, pick = 0;
-	char *winner;
-	char *dname = mkpathname(bp_xpdir, bp_plugindir, "data", "msgs", NULL);
-	DIR *dp = opendir(dname);
-	int n = strlen(base);
+msg_pack_variant_select(char *base) {
+    char **variants = NULL;
+    size_t num = 0, pick = 0;
+    char *winner;
+    char *dname = mkpathname(bp_xpdir, bp_plugindir, "data", "msgs", NULL);
+    DIR *dp = opendir(dname);
+    int n = strlen(base);
 
-	if (dp == NULL) {
-		logMsg("Error opening %s: %s", dname, strerror(errno));
-		free(dname);
-		return (base);
-	}
-	for (struct dirent *de = readdir(dp); de != NULL; de = readdir(dp)) {
-		if (strcmp(de->d_name, base) == 0 ||
-		    (strncmp(de->d_name, base, n) == 0 &&
-		    de->d_name[n] == '(')) {
-			variants = realloc(variants,
-			    (num + 1) * sizeof (*variants));
-			variants[num++] = strdup(de->d_name);
-		}
-	}
-	closedir(dp);
+    if (dp == NULL) {
+        logMsg(BP_ERROR_LOG "Error opening %s: %s", dname, strerror(errno));
+        free(dname);
+        return (base);
+    }
+    for (struct dirent *de = readdir(dp); de != NULL; de = readdir(dp)) {
+        if (strcmp(de->d_name, base) == 0 ||
+            (strncmp(de->d_name, base, n) == 0 &&
+             de->d_name[n] == '(')) {
+            variants = realloc(variants,
+                               (num + 1) * sizeof(*variants));
+            variants[num++] = strdup(de->d_name);
+        }
+    }
+    closedir(dp);
 
-	free(dname);
-	free(base);
+    free(dname);
+    free(base);
 
-	ASSERT(num != 0);
-	pick = crc64_rand() % num;
-	winner = variants[pick];
-	variants[pick] = NULL;
-	for (size_t i = 0; i < num; i++)
-		free(variants[i]);
-	free(variants);
+    ASSERT(num != 0);
+    ASSERT(variants);
 
-	return (winner);
+    pick = crc64_rand() % num;
+    winner = variants[pick];
+    variants[pick] = NULL;
+    for (size_t i = 0; i < num; i++)
+        free(variants[i]);
+    free(variants);
+
+    return (winner);
 }
 
 bool_t
-msg_init(const char *my_lang, const char *icao, lang_pref_t lang_pref)
-{
-	const char *arpt_cc = icao2cc(icao);
-	const char *arpt_lang = icao2lang(icao);
-	enum { MAX_MATCHES = 4 };
-	char match_set[MAX_MATCHES][8] = { {0}, {0}, {0}, {0} };
-	char *msg_dir_name = NULL;
-	char cc[3];
-	const char *radio_dev = NULL;
-	bool_t shared_ctx = B_FALSE;
+mgs_initiated(void) {
+    return inited;
+}
 
-	(void) conf_get_str(bp_conf, "radio_device", &radio_dev);
-	(void) conf_get_b(bp_conf, "shared_ctx", &shared_ctx);
+bool_t
+msg_init(const char *my_lang, const char *icao, lang_pref_t lang_pref) {
+    const char *arpt_cc = icao2cc(icao);
+    const char *arpt_lang = icao2lang(icao);
+    enum {
+        MAX_MATCHES = 4
+    };
+    char match_set[MAX_MATCHES][8] = {{0},
+                                      {0},
+                                      {0},
+                                      {0}};
+    char *msg_dir_name = NULL;
+    char cc[3];
+    const char *radio_dev = NULL;
+    bool_t shared_ctx = B_FALSE;
 
-	ASSERT(!inited);
+    (void) conf_get_str(bp_conf, "radio_device", &radio_dev);
+    (void) conf_get_b(bp_conf, "shared_ctx", &shared_ctx);
 
-	alc = openal_init(radio_dev, shared_ctx);
-	if (alc == NULL)
-		goto errout;
+    ASSERT(!inited);
 
-	if (arpt_cc != NULL)
-		alias_cc(arpt_cc, cc);
-	else
-		strcpy(cc, "XX");
+    alc = openal_init(radio_dev, shared_ctx);
+    if (alc == NULL)
+        goto errout;
 
-	switch (lang_pref) {
-	case LANG_PREF_MATCH_REAL:
-		/*
-		 * For match real our preference order is:
-		 * 1) try "my_lang_CC" for country-local accent of my language
-		 * 2) if arpt_lang == my_lang, try "my_lang" for generic
-		 *	language fallback
-		 * 3) try "en_CC" for country-local English accent
-		 * 4) try "en-arpt_lang" for generic English accent of local
-		 *	language
-		 */
-		snprintf(match_set[0], sizeof (*match_set), "%s_%s",
-		    my_lang, cc);
-		if (strcmp(arpt_lang, my_lang) == 0)
-			strlcpy(match_set[1], my_lang, sizeof (*match_set));
-		snprintf(match_set[2], sizeof (*match_set), "en_%s", cc);
-		snprintf(match_set[3], sizeof (*match_set), "en-%s", arpt_lang);
-		CTASSERT(MAX_MATCHES > 3);
-		break;
-	case LANG_PREF_NATIVE:
-		/*
-		 * For native, our preference order is:
-		 * 1) try "my_lang", ignoring any local accent
-		 * 2) try "my_lang_CC" for country-local accent
-		 */
-		strlcpy(match_set[0], my_lang, sizeof (*match_set));
-		snprintf(match_set[1], sizeof (*match_set), "%s_%s",
-		    my_lang, cc);
-		CTASSERT(MAX_MATCHES > 1);
-		break;
-	default:
-		/*
-		 * For match-English, preference order is:
-		 * 1) try "en_CC" for country-local English accent
-		 * 2) try "en-arpt_lang" for generic English accent of local
-		 *	language
-		 */
-		VERIFY3U(lang_pref, ==, LANG_PREF_MATCH_ENGLISH);
-		snprintf(match_set[0], sizeof (*match_set), "en_%s", cc);
-		snprintf(match_set[1], sizeof (*match_set), "en-%s", arpt_lang);
-		CTASSERT(MAX_MATCHES > 1);
-		break;
-	};
+    if (arpt_cc != NULL)
+        alias_cc(arpt_cc, cc);
+    else
+        strcpy(cc, "XX");
 
-	for (int i = 0; i < MAX_MATCHES; i++) {
-		char *path;
-		bool_t isdir;
+    switch (lang_pref) {
+        case LANG_PREF_MATCH_REAL:
+            /*
+             * For match real our preference order is:
+             * 1) try "my_lang_CC" for country-local accent of my language
+             * 2) if arpt_lang == my_lang, try "my_lang" for generic
+             *	language fallback
+             * 3) try "en_CC" for country-local English accent
+             * 4) try "en-arpt_lang" for generic English accent of local
+             *	language
+             */
+            snprintf(match_set[0], sizeof(*match_set), "%s_%s",
+                     my_lang, cc);
+            if (strcmp(arpt_lang, my_lang) == 0)
+                strlcpy(match_set[1], my_lang, sizeof(*match_set));
+            snprintf(match_set[2], sizeof(*match_set), "en_%s", cc);
+            snprintf(match_set[3], sizeof(*match_set), "en-%s", arpt_lang);
+            CTASSERT(MAX_MATCHES > 3);
+            break;
+        case LANG_PREF_NATIVE:
+            /*
+             * For native, our preference order is:
+             * 1) try "my_lang", ignoring any local accent
+             * 2) try "my_lang_CC" for country-local accent
+             */
+            strlcpy(match_set[0], my_lang, sizeof(*match_set));
+            snprintf(match_set[1], sizeof(*match_set), "%s_%s",
+                     my_lang, cc);
+            CTASSERT(MAX_MATCHES > 1);
+            break;
+        default:
+            /*
+             * For match-English, preference order is:
+             * 1) try "en_CC" for country-local English accent
+             * 2) try "en-arpt_lang" for generic English accent of local
+             *	language
+             */
+            VERIFY3U(lang_pref, ==, LANG_PREF_MATCH_ENGLISH);
+            snprintf(match_set[0], sizeof(*match_set), "en_%s", cc);
+            snprintf(match_set[1], sizeof(*match_set), "en-%s", arpt_lang);
+            CTASSERT(MAX_MATCHES > 1);
+            break;
+    };
 
-		if (*match_set[i] == 0)
-			continue;
-		path = mkpathname(bp_xpdir, bp_plugindir, "data", "msgs",
-		    match_set[i], NULL);
-		if (file_exists(path, &isdir) && isdir) {
-			free(path);
-			msg_dir_name = strdup(match_set[i]);
-			break;
-		}
-		free(path);
-	}
+    for (int i = 0; i < MAX_MATCHES; i++) {
+        char *path;
+        bool_t isdir;
 
-	if (msg_dir_name == NULL) {
-		/* final fallback for everything: generic English */
-		msg_dir_name = strdup("en");
-	}
+        if (*match_set[i] == 0)
+            continue;
+        path = mkpathname(bp_xpdir, bp_plugindir, "data", "msgs",
+                          match_set[i], NULL);
+        if (file_exists(path, &isdir) && isdir) {
+            free(path);
+            msg_dir_name = strdup(match_set[i]);
+            break;
+        }
+        free(path);
+    }
 
-	/*
-	 * To support multiple sound pack variants, we look through data/msgs
-	 * again to look for variations of 'msg_dir_name(XYZ)', where
-	 * msg_dir_name is the message directory we selected above. If there
-	 * are multiple matching ones, we randomly select one.
-	 */
-	msg_dir_name = msg_pack_variant_select(msg_dir_name);
+    if (msg_dir_name == NULL) {
+        /* final fallback for everything: generic English */
+        msg_dir_name = strdup("en");
+    }
 
-	for (message_t msg = 0; msg < MSG_NUM_MSGS; msg++) {
-		char *path = mkpathname(bp_xpdir, bp_plugindir, "data",
-		    "msgs", msg_dir_name, msgs[msg].filename, NULL);
-		msgs[msg].wav = wav_load(path, msgs[msg].filename, alc);
-		if (msgs[msg].wav == NULL) {
-			logMsg("ProgressiveTaxi initialization error, unable "
-			    "to load sound file %s (prefdir: %s)", path,
-			    msg_dir_name);
-			free(path);
-			goto errout;
-		}
-		free(path);
-	}
+    /*
+     * To support multiple sound pack variants, we look through data/msgs
+     * again to look for variations of 'msg_dir_name(XYZ)', where
+     * msg_dir_name is the message directory we selected above. If there
+     * are multiple matching ones, we randomly select one.
+     */
+    msg_dir_name = msg_pack_variant_select(msg_dir_name);
 
-	free(msg_dir_name);
-	fdr_find(&sound_on, "sim/operation/sound/sound_on");
-	fdr_find(&radio_vol, "sim/operation/sound/radio_volume_ratio");
+    for (message_t msg = 0; msg < MSG_NUM_MSGS; msg++) {
+        char *path = mkpathname(bp_xpdir, bp_plugindir, "data",
+                                "msgs", msg_dir_name, msgs[msg].filename, NULL);
+        msgs[msg].wav = wav_load(path, msgs[msg].filename, alc);
+        if (msgs[msg].wav == NULL) {
+            logMsg(BP_ERROR_LOG "initialization error, unable "
+                                "to load sound file %s (prefdir: %s)", path,
+                   msg_dir_name);
+            free(path);
+            goto errout;
+        }
+        free(path);
+    }
 
-	inited = B_TRUE;
+    free(msg_dir_name);
+    fdr_find(&sound_on, "sim/operation/sound/sound_on");
 
-	return (B_TRUE);
-errout:
-	free(msg_dir_name);
-	for (message_t msg = 0; msg < MSG_NUM_MSGS; msg++) {
-		if (msgs[msg].wav != NULL) {
-			wav_free(msgs[msg].wav);
-			msgs[msg].wav = NULL;
-		}
-	}
-	if (alc != NULL) {
-		openal_fini(alc);
-		alc = NULL;
-	}
-	return (B_FALSE);
+    inited = B_TRUE;
+
+    return (B_TRUE);
+    errout:
+    free(msg_dir_name);
+    for (message_t msg = 0; msg < MSG_NUM_MSGS; msg++) {
+        if (msgs[msg].wav != NULL) {
+            wav_free(msgs[msg].wav);
+            msgs[msg].wav = NULL;
+        }
+    }
+    if (alc != NULL) {
+        openal_fini(alc);
+        alc = NULL;
+    }
+    return (B_FALSE);
 }
 
 void
-msg_fini(void)
-{
-	if (!inited)
-		return;
-	for (message_t msg = 0; msg < MSG_NUM_MSGS; msg++) {
-		if (msgs[msg].wav != NULL) {
-			wav_free(msgs[msg].wav);
-			msgs[msg].wav = NULL;
-		}
-	}
-	if (alc != NULL) {
-		openal_fini(alc);
-		alc = NULL;
-	}
-	inited = B_FALSE;
+msg_fini(void) {
+    if (!inited)
+        return;
+    for (message_t msg = 0; msg < MSG_NUM_MSGS; msg++) {
+        if (msgs[msg].wav != NULL) {
+            wav_free(msgs[msg].wav);
+            msgs[msg].wav = NULL;
+        }
+    }
+    if (alc != NULL) {
+        openal_fini(alc);
+        alc = NULL;
+    }
+    inited = B_FALSE;
+    caption_issued = B_FALSE;
 }
 
 void
-msg_play(message_t msg)
-{
-	VERIFY3U(msg, <, MSG_NUM_MSGS);
-	ASSERT(inited);
-	if (dr_geti(&sound_on) == 0)
-		return;
-	wav_set_gain(msgs[msg].wav, dr_getf(&radio_vol));
-	wav_play(msgs[msg].wav);
-	last_msg = msg;
+msg_play(message_t msg) {
+    VERIFY3U(msg, <, MSG_NUM_MSGS);
+    ASSERT(inited);
+    last_msg = msg;
+    message_sequence++;
+    caption_started_us = microclock();
+    caption_issued = B_TRUE;
+    if (dr_geti(&sound_on) == 0)
+        return;
+    // log convertion, we are controling here audio volume
+    wav_set_gain(msgs[msg].wav, (double) (bp_ground_crew_audio_volume * bp_ground_crew_audio_volume));
+    wav_play(msgs[msg].wav);
 }
 
 void
-msg_stop(void)
-{
-	ASSERT(inited);
-	wav_stop(msgs[last_msg].wav);
+msg_stop(void) {
+    ASSERT(inited);
+    wav_stop(msgs[last_msg].wav);
+    caption_issued = B_FALSE;
 }
 
 double
-msg_dur(message_t msg)
+msg_dur(message_t msg) {
+    VERIFY3U(msg, <, MSG_NUM_MSGS);
+    ASSERT(inited);
+    return (msgs[msg].wav->duration);
+}
+
+void
+msg_get_caption_state(msg_caption_state_t *state)
 {
-	VERIFY3U(msg, <, MSG_NUM_MSGS);
-	ASSERT(inited);
-	return (msgs[msg].wav->duration);
+    uint64_t duration_us;
+
+    if (state == NULL)
+        return;
+    state->active = B_FALSE;
+    state->message = last_msg;
+    state->sequence = message_sequence;
+    if (!inited || !caption_issued)
+        return;
+
+    duration_us = (uint64_t)(msgs[last_msg].wav->duration * 1000000.0);
+    if (microclock() - caption_started_us <= duration_us)
+        state->active = B_TRUE;
+    else
+        caption_issued = B_FALSE;
 }

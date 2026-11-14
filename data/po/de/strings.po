@@ -52,7 +52,7 @@ msgid ""
 msgstr "Pushback Fehler: Das Flugzeug hat einen nicht-positiven Radstand. "
 "Flugzeuge mit Spornrad werden leider nicht unterstützt."
 
-msgid "Pushback failure: aircraft is incompatible with BetterPushback."
+msgid "Pushback failure: aircraft is incompatible with ProgressiveTaxi."
 msgstr "Pushback Fehler: Flugzeugmodel ist nicht mit BetterPushback kompatibel."
 
 msgid ""
@@ -73,6 +73,9 @@ msgstr "Pushback Fehler: Smartcopilot hat eine Master/Slave Umschaltung "
 
 msgid "Start pushback"
 msgstr "Pushback starten"
+
+msgid "Change pushback"
+msgstr "Pushback ändern"
 
 msgid "Stop pushback"
 msgstr "Pushback stoppen"
@@ -95,7 +98,7 @@ msgstr "Pushback Planer schließen"
 msgid "Preferences..."
 msgstr "Einstellungen..."
 
-msgid "BetterPushback Preferences"
+msgid "Progressive Taxi Preferences"
 msgstr "BetterPushback Einstellungen"
 
 msgid "User interface"
@@ -119,11 +122,11 @@ msgstr "Englisch für alle Flughäfen"
 msgid "Save preferences"
 msgstr "Einstellungen sichern"
 
-msgid "Ground crew speaks my language only if the country the airport is\n"
-"in speaks my language. Otherwise the ground crew speaks English\n"
+msgid "Ground crew speaks my language only if the country the airport is "
+"in speaks my language. Otherwise the ground crew speaks English "
 "with a local accent."
-msgstr "Bodenpersonal spricht meine Sprache, wenn sich der Flughafen\n"
-"in einem Land befindet, in dem meine Sprache gesprochen wird.\n"
+msgstr "Bodenpersonal spricht meine Sprache, wenn sich der Flughafen "
+"in einem Land befindet, in dem meine Sprache gesprochen wird. "
 "Falls nicht, spricht sie Englisch mit lokalem Akzent."
 
 msgid "Ground crew speaks my language irrespective of what country the "
@@ -134,6 +137,28 @@ msgstr "Bodenpersonal spricht meine Sprache, egal in welchem Land sich "
 msgid "Ground crew always speaks English with a local accent."
 msgstr "Bodenpersonal spricht immer Englisch mit lokalem Akzent."
 
+msgid 
+    "My language only at domestic airports:\n"
+    "Ground crew speaks my language only if the country the airport is "
+    "in speaks my language. Otherwise the ground crew speaks English "
+    "with a local accent.\n\n"
+    "My language at all airports:\n"
+    "Ground crew speaks my language irrespective "
+    "of what country the airport is in.\n\n"
+    "English at all airports:\n"
+    "Ground crew always speaks English "
+    "with a local accent."
+msgstr
+"Meine Sprache nur für inländische Flughäfen:\n"
+"Bodenpersonal spricht meine Sprache, wenn sich der Flughafen "
+"in einem Land befindet, in dem meine Sprache gesprochen wird. "
+"Falls nicht, spricht sie Englisch mit lokalem Akzent.\n\n"
+"Meine Sprache für alle Flughäfen:\n"
+"Bodenpersonal spricht meine Sprache, egal in welchem Land sich "
+"der Flughafen befindet.\n\n"
+"Englisch für alle Flughäfen:\n"
+"Bodenpersonal spricht immer Englisch mit lokalem Akzent."
+
 msgid "Save current preferences to disk."
 msgstr "Aktuelle Einstellungen auf die Festplatte speichern."
 
@@ -142,3 +167,862 @@ msgstr "Schlepper und Headset trennen + weitere Anweisungen per Handzeichen."
 
 msgid "Reconnect tow and await further instructions."
 msgstr "Schlepper wieder ankoppeln und weitere Anweisungen erwarten."
+
+msgid "Settings related to the current aircraft"
+msgstr "Einstellung bezieht sich auf aktuelles Flugzeug"
+
+msgid "Hint: hover your mouse cursor over any label to show a short description of what it does."
+msgstr "Hinweis: Zeigen Sie mit dem Mauszeiger auf ein Label, um eine kurze Beschreibung anzuzeigen."
+
+msgid "ProgressiveTaxi (a fork of BetterPushback) is open-source software. See COPYING for more information."
+msgstr "BetterPushback ist open-source software. Siehe COPYING für mehr Informationen"
+
+msgid "Auto disconnect when done"
+msgstr "Am Ende automatisch trennen"
+
+msgid "Miscellaneous"
+msgstr "Verschiedenes"
+
+msgid "Ignore check parking brake is set"
+msgstr "Mach kein Parking Brake check"
+
+msgid   "Never ask and always automatically disconnect "
+        "the tug when the pushback operation is complete."
+msgstr  "Nie fragen und den Schlepper immer automatisch trennen, "
+        "wenn der Pushback-Vorgang abgeschlossen ist."
+
+msgid   "Never check \"set parking brake\".\n"
+        "Some aircraft stuck on this check.\n"
+        "It's on the beginning and on the end.\n"
+        "This should solve this problem for some aircrafts. (KA350 for "
+        "instance)."
+msgstr  "Nie die \"Parkbremse setzen\" überprüfen.\n"
+        "Einige Flugzeuge bleiben bei dieser Überprüfung hängen.\n"
+        "Dies tritt am Anfang und am Ende auf.\n"
+        "Dies sollte das Problem bei einigen Flugzeugen lösen (zum Beispiel die KA350)."
+
+msgid   "Select the action after the doors/GPU/ASU status check is done before starting the push-back.\n"
+        "Active with ground crew message: The ground crew will tell you if the doors are not closed.\n"
+        "Active, but stay silent: The ground crew will wait, but not say anything if the doors are not closed.\n"
+        "Ignore: The doors/GPU/ASU status check is ignored and the push-back starts immediately, even if the doors are not closed or the GPU/ASU is still connected."
+msgstr  "Wählen Sie die Aktion nach der Überprüfung des Status von Türen/GPU/ASU, bevor der Pushback gestartet wird.\n"
+        "Aktiv mit Bodenpersonal-Nachricht: Das Bodenpersonal wird Ihnen mitteilen, ob die Türen nicht geschlossen sind.\n"
+        "Aktiv, aber still: Das Bodenpersonal wird warten, aber nichts sagen, wenn die Türen nicht geschlossen sind.\n"
+        "Ignorieren: Die Überprüfung des Status von Türen/GPU/ASU wird ignoriert und der Pushback beginnt sofort, auch wenn die Türen nicht geschlossen sind oder die GPU/ASU noch verbunden ist."
+
+msgid   "Hides the shortcut buttons on the left side of the screen.\n"
+        "The first button starts the planner and the second starts the push-"
+        "back."
+msgstr  "Blendet die Schaltflächen für Schnellzugriff auf der linken Seite des Bildschirms aus.\n"
+        "Der erste Knopf startet den Planer, der zweite den Pushback."
+
+msgid   "Slide this bar to move the magic squares up or down."
+msgstr  "Schieben Sie diesen Balken, um die magischen Quadrate nach oben oder unten zu bewegen."
+
+msgid   "The push process is always halted when the tug is at the nose of the "
+        "aircraft.\n"
+        "The process will proceed by triggering again the 'start pushback' "
+        "command."
+msgstr  "Der Push-Prozess wird immer angehalten, wenn der Schlepper sich an der Flugzeugnase befindet.\n"
+        "Der Prozess wird durch erneutes Auslösen des 'Pushback starten'-Befehls fortgesetzt."
+
+msgid   "Hides default X-Plane 11 pushback tug.\n"
+        "Restart X-Plane for this change to take effect."
+msgstr  "Blendet den Standard-Pushback-Schlepper von X-Plane 11 aus.\n"
+        "Starten Sie X-Plane neu, damit diese Änderung wirksam wird."
+
+msgid   "Doors/GPU/ASU check"
+msgstr  "Überprüfen der Türen/GPU/ASU"
+
+msgid   "Hide the magic squares"
+msgstr  "Magische Quadrate ausblenden"
+
+msgid   "Magic squares position"
+msgstr  "Position der magischen Quadrate"
+
+msgid   "Hide default X-Plane 11 tug"
+msgstr  "Standard-Schlepper von X-Plane 11 ausblenden"
+
+msgid   "Always connect the tug first"
+msgstr  "Schlepper immer zuerst verbinden"
+
+msgid   "Connect tug first"
+msgstr  "Schlepper zuerst verbinden"
+
+msgid   "Tug cab view"
+msgstr  "Ansicht der Schlepperkabine"
+
+msgid "Radio output device"
+msgstr "Radioausgabegerät"
+
+#: cfg.c:658
+msgid "Sound output device"
+msgstr "Tonausgabegerät"
+
+msgid "Audio settings"
+msgstr "Audioeinstellungen"
+
+msgid   "Push-back waiting to be called"
+msgstr  "Schleppvorgang wartet auf Aufruf"
+
+msgid "The tug appears next to the plane avoiding in certain case that he is "
+    "travelling inside the buildings."
+msgstr  "Das Schleppfahrzeug erscheint neben dem Flugzeug und vermeidet in bestimmten Fällen, dass es durch Gebäude fährt."
+
+msgid "The tug will appear once the beacon light is switched from off to on "
+      "then the process will proceed as 'connect the tug first'."
+msgstr  "Der Schlepper erscheint, sobald das Beacon-Licht von aus auf an geschaltet wird, "
+        "dann wird der Prozess mit der Anweisung 'zuerst den Schlepper verbinden' fortgesetzt."
+        
+msgid "Tug starts near the aircraft"
+msgstr  "Das Schleppfahrzeug startet in der Nähe des Flugzeugs"
+
+msgid   "Active with ground crew message"
+msgstr  "Aktiv mit Bodenpersonal-Nachricht"
+
+msgid   "Active, but stay silent"
+msgstr  "Aktiv, aber still"
+
+msgid   "Ignore"
+msgstr  "Ignorieren"
+
+msgid "Tug called by activating the beacon"
+msgstr  "Das Schleppfahrzeug wird durch Aktivierung des Beacon-Lichts gerufen"
+
+msgid "Some Eye tracker plugins use the X-plane camera system and therefore "
+    "doesn't allow BpB to work properly "
+    "while using the planner or the tug view.\n\n"
+    "If it is the case, select the plugin that is in conflit with BpB.\n\n"
+    "CAUTION: At this point, you know what you are doing, selecting the wrong "
+    "plugin may cause X-plane to crash.\n"
+    "Otherwise this setting must be set to : None."
+msgstr "Einige Eye-Tracking-Plugins verwenden das Kamerasystem von X-Plane "
+    "und können dadurch die Funktion von BpB beeinträchtigen, "
+    "wenn der Planer oder die Schlepperansicht verwendet wird.\n\n"
+    "In diesem Fall wählen Sie das Plugin aus, das mit BpB in Konflikt steht.\n\n"
+    "ACHTUNG: An diesem Punkt sollten Sie genau wissen, was Sie tun. "
+    "Das Ausschließen des falschen Plugins kann zum Absturz von X-Plane führen.\n"
+    "Wenn Sie keine Probleme haben, lassen Sie diese Einstellung auf: Keine."
+
+msgid "Some aircraft plugin may be not compatible with BpB\n"
+  "If it is the case, select the plugin that is in conflit with BpB.\n\n"
+  "CAUTION: At this point, you know what you are doing, selecting the wrong "
+  "plugin may cause X-plane to crash.\n"
+  "Otherwise this setting must be set to : None."
+msgstr "Einige Flugzeug-Plugins sind möglicherweise nicht mit BpB kompatibel.\n\n"
+    "In diesem Fall wählen Sie das Plugin aus, das mit BpB in Konflikt steht.\n\n"
+    "ACHTUNG: An diesem Punkt sollten Sie genau wissen, was Sie tun. "
+    "Das Ausschließen des falschen Plugins kann zum Absturz von X-Plane führen.\n"
+    "Wenn Sie keine Probleme haben, lassen Sie diese Einstellung auf: Keine."
+
+msgid  "None"
+msgstr  "Keine"
+
+msgid "ACF Plugin Exclusion (Experimental)"
+msgstr "ACF-Plugin-Ausschluss (experimentell)"
+
+msgid "Eye Tracker Plugin Exclusion"
+msgstr "Eye Tracker Plugin-Ausschluss"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "No"
+msgstr "Nein"
+
+msgid "Use Aircraft setting"
+msgstr "Flugzeugeinstellung verwenden"
+
+msgid   "Reload Progressive Taxi"
+msgstr  "BetterPushback neu laden"
+
+msgid "Waiting for planning the pushback"
+msgstr "Warten auf die Planung des Pushbacks"
+
+msgid "Ground crew audio relative default audio volume:\n"
+      "The volume can be changed here or by using the dataref:\n"
+      "'bp/ground_crew_audio_volume'"
+
+msgstr "Relative Standardlautstärke der Bodencrew-Audios:\n"
+        "Die Lautstärke kann hier oder über die Dataref geändert werden:\n"
+        "'bp/ground_crew_audio_volume'"
+
+msgid "Ground crew audio volume"
+msgstr "Lautstärke der Bodencrew-Audios"
+
+msgid "End pushback and disconnect"
+msgstr "Pushback beenden und trennen"
+
+msgid "Pause/Resume automatic pushback"
+msgstr "Automatisches Pushback pausieren/fortsetzen"
+
+msgid "Ground Operations: Show/Hide"
+msgstr "Bodenbetrieb: Anzeigen/Ausblenden"
+
+msgid "Ground Operations: Expand/Collapse"
+msgstr "Bodenbetrieb: Erweitern/Einklappen"
+
+msgid "Tug available"
+msgstr "Schlepper verfügbar"
+
+msgid "Button click volume"
+msgstr "Lautstärke der Tastenklicks"
+
+msgid "Ground Operations button clicks only. 0% mutes clicks.\n"
+    "Changes apply immediately; use Save preferences to keep them.\n"
+    "Release the slider to preview the selected volume."
+msgstr "Nur Klicks der Schaltflächen für den Bodenbetrieb. 0 % schaltet Klicks stumm.\n"
+    "Änderungen werden sofort übernommen; mit „Einstellungen speichern“ dauerhaft sichern.\n"
+    "Schieberegler loslassen, um die gewählte Lautstärke zu hören."
+
+msgid "Changes are immediate; use \"Save preferences\" to persist them.\n"
+msgstr "Änderungen werden sofort übernommen; mit „Einstellungen speichern“ dauerhaft sichern.\n"
+
+msgid "Release the slider to preview the selected volume."
+msgstr "Schieberegler loslassen, um die gewählte Lautstärke zu hören."
+
+msgid "Progressive Taxi Ground Operations"
+msgstr "BetterPushback Bodenbetrieb"
+
+msgid "Tug"
+msgstr "Schlepper"
+
+msgid "Connect"
+msgstr "Verbinden"
+
+msgid "Comms"
+msgstr "Komm."
+
+msgid "Push"
+msgstr "Pushback"
+
+msgid "Clear"
+msgstr "Frei"
+
+msgid "Ground operations"
+msgstr "Bodenbetrieb"
+
+msgid "Return window to X-Plane"
+msgstr "Fenster in X-Plane zurückführen"
+
+msgid "Pop out to an operating-system window"
+msgstr "In ein Systemfenster auslagern"
+
+msgid "Click, or hover here for one second, to collapse"
+msgstr "Klicken oder eine Sekunde hier verweilen, um einzuklappen"
+
+msgid "Hide Ground Operations"
+msgstr "Bodenbetrieb ausblenden"
+
+msgid "Click the progress rail to collapse Ground Operations"
+msgstr "Fortschrittsleiste anklicken, um den Bodenbetrieb einzuklappen"
+
+msgid "Keep operation"
+msgstr "Vorgang fortsetzen"
+
+msgid "Cancel; keep the route and tug connected"
+msgstr "Abbrechen; Route und Schlepperverbindung beibehalten"
+
+msgid "Confirm end"
+msgstr "Beenden bestätigen"
+
+msgid "Stop completely, discard the route, and disconnect"
+msgstr "Vollständig stoppen, Route verwerfen und trennen"
+
+msgid "Controlled stop; route and steering state are retained"
+msgstr "Kontrollierter Stopp; Route und Lenkstatus bleiben erhalten"
+
+msgid "Continue the accepted route from the hold"
+msgstr "Angenommene Route nach dem Stopp fortsetzen"
+
+msgid "Disconnect the tug and continue to the hand signal"
+msgstr "Schlepper trennen und bis zum Handzeichen weiterfahren"
+
+msgid "Reconnect the tug and return to route planning"
+msgstr "Schlepper wieder verbinden und zur Routenplanung zurückkehren"
+
+msgid "Interactive | Offline safe"
+msgstr "Interaktiv | Offline sicher"
+
+msgid "PILOT ACTION"
+msgstr "PILOTENAKTION"
+
+msgid "CURRENT TASK"
+msgstr "AKTUELLE AUFGABE"
+
+msgid "Planner opened. Define the route."
+msgstr "Planer geöffnet. Route festlegen."
+
+msgid "Pushback plan saved."
+msgstr "Pushback-Plan gespeichert."
+
+msgid "Ground crew: Tug approaching."
+msgstr "Bodenpersonal: Schlepper kommt."
+
+msgid "Ground crew: Set parking brake."
+msgstr "Bodenpersonal: Parkbremse setzen."
+
+msgid "Ground crew: Ready to connect."
+msgstr "Bodenpersonal: Bereit zum Verbinden."
+
+msgid "Ground crew: Winching nose gear."
+msgstr "Bodenpersonal: Bugfahrwerk wird aufgenommen."
+
+msgid "Ground crew: Tug connected."
+msgstr "Bodenpersonal: Schlepper verbunden."
+
+msgid "Ground crew: Starting pushback."
+msgstr "Bodenpersonal: Pushback beginnt."
+
+msgid "Ground crew: Starting tow."
+msgstr "Bodenpersonal: Schleppvorgang beginnt."
+
+msgid "Ground crew: Start engines later."
+msgstr "Bodenpersonal: Triebwerke später starten."
+
+msgid "Ground crew: Tow; start later."
+msgstr "Bodenpersonal: Schleppen; später starten."
+
+msgid "Ground crew: Pushback complete."
+msgstr "Bodenpersonal: Pushback abgeschlossen."
+
+msgid "Ground crew: Disconnecting tug."
+msgstr "Bodenpersonal: Schlepper wird getrennt."
+
+msgid "Ground crew: Clear on the right."
+msgstr "Bodenpersonal: Rechts frei."
+
+msgid "Ground crew: Clear on the left."
+msgstr "Bodenpersonal: Links frei."
+
+msgid "SIM WX unavailable"
+msgstr "SIM-Wetter nicht verfügbar"
+
+msgid "QNH unavailable"
+msgstr "QNH nicht verfügbar"
+
+msgid "No pilot action required"
+msgstr "Keine Pilotenaktion erforderlich"
+
+msgid "Local plugin state"
+msgstr "Lokaler Plugin-Status"
+
+msgid "Airport ----"
+msgstr "Flughafen ----"
+
+msgid "Airport %s"
+msgstr "Flughafen %s"
+
+msgid "Flight --"
+msgstr "Flug --"
+
+msgid "Flight %s"
+msgstr "Flug %s"
+
+msgid "EOBT --"
+msgstr "EOBT --"
+
+msgid "EOBT %s"
+msgstr "EOBT %s"
+
+msgid "Local plugin | Offline"
+msgstr "Lokales Plugin | Offline"
+
+msgid "current"
+msgstr "aktuell"
+
+msgid "Current"
+msgstr "Aktuell"
+
+msgid "Mixed sources"
+msgstr "Gemischte Quellen"
+
+msgid "STALE"
+msgstr "VERALTET"
+
+msgid "Stale"
+msgstr "Veraltet"
+
+msgid "Reviewing pushback plan"
+msgstr "Pushback-Plan wird geprüft"
+
+msgid "The overhead planner is authoritative"
+msgstr "Der Overhead-Planer ist maßgeblich"
+
+msgid "Complete or cancel the route"
+msgstr "Route abschließen oder abbrechen"
+
+msgid "Ground operation complete"
+msgstr "Bodenvorgang abgeschlossen"
+
+msgid "Aircraft and equipment are clear"
+msgstr "Flugzeug und Ausrüstung sind frei"
+
+msgid "Call tow assistance if the\naircraft must return"
+msgstr "Schlepphilfe rufen, wenn das Flugzeug\nzurückkehren muss"
+
+msgid "Airport data loaded; ground crew is ready"
+msgstr "Flughafendaten geladen; Bodenpersonal bereit"
+
+msgid "Ground crew is ready; airport data unavailable"
+msgstr "Bodenpersonal bereit; Flughafendaten nicht verfügbar"
+
+msgid "Call the tug to begin connection"
+msgstr "Schlepper zum Verbinden rufen"
+
+msgid "Selecting a compatible tug"
+msgstr "Passenden Schlepper auswählen"
+
+msgid "Using the local tug library"
+msgstr "Lokale Schlepperbibliothek wird verwendet"
+
+msgid "Wait for tug selection"
+msgstr "Auf Schlepperauswahl warten"
+
+msgid "Tug standing by"
+msgstr "Schlepper wartet"
+
+msgid "The tug is ready to approach"
+msgstr "Schlepper ist bereit zum Heranfahren"
+
+msgid "Ground crew will begin the approach"
+msgstr "Bodenpersonal beginnt das Heranfahren"
+
+msgid "Ground crew dispatching tug"
+msgstr "Bodenpersonal schickt den Schlepper"
+
+msgid "Ground operation has started"
+msgstr "Bodenvorgang gestartet"
+
+msgid "Wait for the tug"
+msgstr "Auf den Schlepper warten"
+
+msgid "Tug approaching aircraft"
+msgstr "Schlepper nähert sich dem Flugzeug"
+
+msgid "Maintaining safe approach speed"
+msgstr "Sichere Annäherungsgeschwindigkeit wird gehalten"
+
+msgid "Monitor tug approach"
+msgstr "Heranfahren des Schleppers überwachen"
+
+msgid "Clearing aircraft services"
+msgstr "Flugzeugausrüstung wird entfernt"
+
+msgid "Doors, GPU, or ASU are not yet clear"
+msgstr "Türen, GPU oder ASU noch nicht frei"
+
+msgid "Ground crew connection checks"
+msgstr "Verbindungsprüfung durch Bodenpersonal"
+
+msgid "Waiting for aircraft service"
+msgstr "Warten auf Freigabe der Ausrüstung"
+
+msgid "Doors, GPU, or ASU are not clear"
+msgstr "Türen, GPU oder ASU nicht frei"
+
+msgid "Secure doors and equipment"
+msgstr "Türen und Ausrüstung sichern"
+
+msgid "Preparing the tug cradle"
+msgstr "Schlepperaufnahme wird vorbereitet"
+
+msgid "Connection equipment is opening"
+msgstr "Verbindungsausrüstung wird geöffnet"
+
+msgid "Wait for equipment preparation"
+msgstr "Auf Vorbereitung der Ausrüstung warten"
+
+msgid "Performing connection checks"
+msgstr "Verbindung wird geprüft"
+
+msgid "Aircraft is being secured for tug connection"
+msgstr "Flugzeug wird für die Schlepperverbindung gesichert"
+
+msgid "Wait for automatic connection"
+msgstr "Auf automatische Verbindung warten"
+
+msgid "Parking brake required"
+msgstr "Parkbremse erforderlich"
+
+msgid "The tug is ready to connect"
+msgstr "Schlepper ist bereit zum Verbinden"
+
+msgid "Positioning tug to connect"
+msgstr "Schlepper wird zum Verbinden positioniert"
+
+msgid "Closing the final safe distance"
+msgstr "Letzter Sicherheitsabstand wird verringert"
+
+msgid "Monitor tug connection"
+msgstr "Schlepperverbindung überwachen"
+
+msgid "Securing the nose gear"
+msgstr "Bugfahrwerk wird gesichert"
+
+msgid "Tug connection is in progress"
+msgstr "Schlepperverbindung läuft"
+
+msgid "Wait for nose-gear capture"
+msgstr "Auf Aufnahme des Bugfahrwerks warten"
+
+msgid "Tug connected; plan the tow"
+msgstr "Schlepper verbunden; Schlepproute planen"
+
+msgid "Tug connected; plan the push"
+msgstr "Schlepper verbunden; Pushback-Route planen"
+
+msgid "Nose gear captured; saved routes are disabled"
+msgstr "Bugfahrwerk aufgenommen; gespeicherte Routen deaktiviert"
+
+msgid "Nose gear captured; no lift has been performed"
+msgstr "Bugfahrwerk aufgenommen; noch nicht angehoben"
+
+msgid "Plan a one-time tow route"
+msgstr "Einmalige Schlepproute planen"
+
+msgid "Open the planner and accept a route"
+msgstr "Planer öffnen und Route übernehmen"
+
+msgid "Lifting the nose gear"
+msgstr "Bugfahrwerk wird angehoben"
+
+msgid "Connection is nearly complete"
+msgstr "Verbindung fast abgeschlossen"
+
+msgid "Wait for lift completion"
+msgstr "Auf Abschluss des Anhebens warten"
+
+msgid "Tug connected; tow plan required"
+msgstr "Schlepper verbunden; Schleppplan erforderlich"
+
+msgid "Tug connected; plan required"
+msgstr "Schlepper verbunden; Planung erforderlich"
+
+msgid "Emergency Tow uses one-time manual routes only"
+msgstr "Not-Schleppvorgang verwendet nur einmalige manuelle Routen"
+
+msgid "Late-planning mode is active"
+msgstr "Späte Planung ist aktiv"
+
+msgid "Open and complete the planner"
+msgstr "Planer öffnen und Planung abschließen"
+
+msgid "Ready for brake release"
+msgstr "Bereit zum Lösen der Bremse"
+
+msgid "Tug connected and crew ready"
+msgstr "Schlepper verbunden und Bodenpersonal bereit"
+
+msgid "Release the parking brake"
+msgstr "Parkbremse lösen"
+
+msgid "Starting emergency tow"
+msgstr "Not-Schleppvorgang wird gestartet"
+
+msgid "Starting pushback"
+msgstr "Pushback wird gestartet"
+
+msgid "Steering and motion are engaging"
+msgstr "Lenkung und Bewegung werden aktiviert"
+
+msgid "Monitor initial movement"
+msgstr "Erste Bewegung überwachen"
+
+msgid "Emergency tow paused"
+msgstr "Not-Schleppvorgang pausiert"
+
+msgid "Pushback paused"
+msgstr "Pushback pausiert"
+
+msgid "Pausing emergency tow"
+msgstr "Not-Schleppvorgang wird pausiert"
+
+msgid "Pausing pushback"
+msgstr "Pushback wird pausiert"
+
+msgid "Accepted route and steering state are retained"
+msgstr "Übernommene Route und Lenkstatus bleiben erhalten"
+
+msgid "Release parking brake if set, then resume"
+msgstr "Parkbremse lösen, falls gesetzt, dann fortsetzen"
+
+msgid "Controlled deceleration in progress"
+msgstr "Kontrollierte Verzögerung läuft"
+
+msgid "Emergency tow in progress"
+msgstr "Not-Schleppvorgang läuft"
+
+msgid "Pushback in progress"
+msgstr "Pushback läuft"
+
+msgid "Pause retains route; End disconnects"
+msgstr "Pause behält Route; Beenden trennt"
+
+msgid "Monitor tow progress"
+msgstr "Schleppfortschritt überwachen"
+
+msgid "Monitor pushback progress"
+msgstr "Pushback-Fortschritt überwachen"
+
+msgid "Stopping emergency tow"
+msgstr "Not-Schleppvorgang wird gestoppt"
+
+msgid "Stopping the aircraft"
+msgstr "Flugzeug wird angehalten"
+
+msgid "Decelerating to a controlled stop"
+msgstr "Verzögerung bis zum kontrollierten Stopp"
+
+msgid "Wait for the aircraft to stop"
+msgstr "Auf Stillstand des Flugzeugs warten"
+
+msgid "Aircraft stopped"
+msgstr "Flugzeug steht"
+
+msgid "Parking brake confirmation is required"
+msgstr "Bestätigung der Parkbremse erforderlich"
+
+msgid "Lowering the nose gear"
+msgstr "Bugfahrwerk wird abgesenkt"
+
+msgid "Beginning tug disconnection"
+msgstr "Trennen des Schleppers beginnt"
+
+msgid "Wait for nose-gear lowering"
+msgstr "Auf Absenken des Bugfahrwerks warten"
+
+msgid "Releasing the nose gear"
+msgstr "Bugfahrwerk wird freigegeben"
+
+msgid "Wait for nose-gear release"
+msgstr "Auf Freigabe des Bugfahrwerks warten"
+
+msgid "Disconnect confirmed"
+msgstr "Trennen bestätigt"
+
+msgid "Ground crew is preparing to move"
+msgstr "Bodenpersonal bereitet die Abfahrt vor"
+
+msgid "Wait for tug clearance"
+msgstr "Auf Freigabe des Schleppers warten"
+
+msgid "Ready to disconnect"
+msgstr "Bereit zum Trennen"
+
+msgid "Ground crew is awaiting approval"
+msgstr "Bodenpersonal wartet auf Freigabe"
+
+msgid "Cleared to disconnect"
+msgstr "Zum Trennen freigegeben"
+
+msgid "Tug moving clear"
+msgstr "Schlepper fährt weg"
+
+msgid "Separating safely from the aircraft"
+msgstr "Sicheres Entfernen vom Flugzeug"
+
+msgid "Monitor tug clearance"
+msgstr "Entfernen des Schleppers überwachen"
+
+msgid "Closing the tug cradle"
+msgstr "Schlepperaufnahme wird geschlossen"
+
+msgid "Stowing connection equipment"
+msgstr "Verbindungsausrüstung wird verstaut"
+
+msgid "Wait for equipment stowage"
+msgstr "Auf Verstauen der Ausrüstung warten"
+
+msgid "Driver moving to clear"
+msgstr "Fahrer fährt weg"
+
+msgid "Ground crew is taking position"
+msgstr "Bodenpersonal nimmt Position ein"
+
+msgid "Monitor ground crew"
+msgstr "Bodenpersonal überwachen"
+
+msgid "Clear signal acknowledged"
+msgstr "Frei-Signal bestätigt"
+
+msgid "Ground crew will depart shortly"
+msgstr "Bodenpersonal fährt gleich ab"
+
+msgid "Wait for tug departure"
+msgstr "Auf Abfahrt des Schleppers warten"
+
+msgid "Clear signal displayed"
+msgstr "Frei-Signal angezeigt"
+
+msgid "Pin and equipment are clear"
+msgstr "Sicherungsstift und Ausrüstung sind frei"
+
+msgid "Verify the clear signal"
+msgstr "Frei-Signal prüfen"
+
+msgid "Tug returning to station"
+msgstr "Schlepper kehrt zur Station zurück"
+
+msgid "Aircraft area is being cleared"
+msgstr "Bereich um das Flugzeug wird geräumt"
+
+msgid "Finalize cockpit checklist"
+msgstr "Cockpit-Checkliste abschließen"
+
+msgid "Controller idle"
+msgstr "Controller inaktiv"
+
+msgid "No active pushback controller state"
+msgstr "Kein aktiver Pushback-Controllerstatus"
+
+msgid "Use classic controls to begin"
+msgstr "Klassische Steuerung zum Start verwenden"
+
+msgid "Call tow back"
+msgstr "Schlepper zurückrufen"
+
+msgid "Call tug"
+msgstr "Schlepper rufen"
+
+msgid "Plan tow"
+msgstr "Schleppvorgang planen"
+
+msgid "Plan push"
+msgstr "Pushback planen"
+
+msgid "End operation"
+msgstr "Vorgang beenden"
+
+msgid "Change plan"
+msgstr "Plan ändern"
+
+msgid "Resume tow"
+msgstr "Schleppvorgang fortsetzen"
+
+msgid "Resume push"
+msgstr "Pushback fortsetzen"
+
+msgid "Pause tow"
+msgstr "Schleppvorgang pausieren"
+
+msgid "Pause push"
+msgstr "Pushback pausieren"
+
+msgid "Disconnect tug"
+msgstr "Schlepper trennen"
+
+msgid "Reconnect"
+msgstr "Erneut verbinden"
+
+msgid "Acknowledge"
+msgstr "Bestätigen"
+
+msgid "unknown"
+msgstr "unbekannt"
+
+msgid "Speed %.1f m/s"
+msgstr "Geschwindigkeit %.1f m/s"
+
+msgid "Speed --"
+msgstr "Geschwindigkeit --"
+
+msgid "Remaining --"
+msgstr "Verbleibend --"
+
+msgid "Remaining %d m"
+msgstr "Verbleibend %d m"
+
+msgid "REVIEW"
+msgstr "PRÜFUNG"
+
+msgid "COMPLETE"
+msgstr "ABGESCHLOSSEN"
+
+msgid "ACTIVE"
+msgstr "AKTIV"
+
+msgid "WAITING"
+msgstr "WARTEN"
+
+msgid "GROUND CREW"
+msgstr "BODENCREW"
+
+msgid "ACTION"
+msgstr "AKTION"
+
+msgid "HOLD"
+msgstr "HALT"
+
+msgid "CONFIRMED"
+msgstr "BESTÄTIGT"
+
+msgid "READY"
+msgstr "BEREIT"
+
+msgid "CLEAR"
+msgstr "FREI"
+
+msgid "STANDBY"
+msgstr "BEREITSCHAFT"
+
+msgid "Set the parking brake"
+msgstr "Parkbremse setzen"
+
+msgid "METAR -- | ATIS --"
+msgstr "METAR -- | ATIS --"
+
+msgid "Ground Operations interface size"
+msgstr "Größe der Bodenbetriebsoberfläche"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "Large"
+msgstr "Groß"
+
+msgid "Extra large"
+msgstr "Sehr groß"
+
+msgid "Scales the complete Ground Operations interface, including text, controls, spacing and hit targets."
+msgstr "Skaliert die gesamte Bodenbetriebsoberfläche einschließlich Text, Steuerelementen, Abständen und Klickflächen."
+
+msgid "Auto-expand for pilot actions"
+msgstr "Bei Pilotenaktionen automatisch erweitern"
+
+msgid ""
+"Expand the compact Ground Operations panel for required pilot actions, "
+"then collapse it shortly after the action is completed."
+msgstr ""
+"Das kompakte Ground-Operations-Fenster bei erforderlichen Pilotenaktionen "
+"erweitern und kurz nach Abschluss der Aktion wieder einklappen."
+
+msgid "Pushback interface"
+msgstr "Pushback-Benutzeroberfläche"
+
+msgid "Ground Operations"
+msgstr "Bodenbetrieb"
+
+msgid "Legacy magic squares"
+msgstr "Klassische magische Quadrate"
+
+msgid "Display marshaller"
+msgstr "Marshaller anzeigen"
+
+msgid ""
+"Show the marshaller during normal pushback operations. Emergency Tow "
+"never displays the marshaller."
+msgstr ""
+"Den Marshaller während normaler Pushback-Vorgänge anzeigen. Beim "
+"Notfallschleppen wird der Marshaller nie angezeigt."
+
+msgid ""
+"Select one global pushback interface. Ground Operations uses the new "
+"panel; Legacy magic squares restores the original operational buttons. "
+"The selection applies immediately while idle. Save preferences to keep "
+"it for the next simulator start."
+msgstr ""
+"Eine globale Pushback-Benutzeroberfläche auswählen. Bodenbetrieb verwendet "
+"das neue Fenster; Klassische magische Quadrate stellt die ursprünglichen "
+"Bedientasten wieder her. Die Auswahl gilt im Leerlauf sofort. Einstellungen "
+"speichern, um sie beim nächsten Simulatorstart beizubehalten."

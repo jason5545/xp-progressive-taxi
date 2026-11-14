@@ -1,0 +1,986 @@
+# CDDL HEADER START
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL"), version 1.0.
+# You may only use this file in accordance with the terms of version
+# 1.0 of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source.  A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+# CDDL HEADER END
+# Copyright 2017 Saso Kiselkov. All rights reserved.
+# SPDX-FileCopyrightText: 2024 Marcus Gama <marcus.gama@gmail.com>
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-07-14 15:58+0300\n"
+"PO-Revision-Date: 2024-07-16 11:13-0300\n"
+"Last-Translator: Marcus Gama <marcus.gama@gmail.com>\n"
+"Language-Team: Portuguese <darktable-dev@lists.darktable.org>\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Lokalize 24.05.2\n"
+
+#: bp.c:1074
+#, c-format
+msgid ""
+"Pushback failure: X-Plane version too old. This plugin requires at least X-"
+"Plane %s to operate."
+msgstr ""
+"Falha do Pushback: Versão muito antiga do X-Plane. Esse plugin requer versão "
+"%s, ou mais recente, do X-Plane para operar."
+
+#: bp.c:1084
+msgid "Pushback failure: error reading aircraft files from disk."
+msgstr "Falha do Pushback: erro ao ler os arquivos da aeronave do disco."
+
+#: bp.c:1149
+msgid ""
+"Pushback failure: error initialising audio messages. Please reinstall "
+"BetterPushback."
+msgstr ""
+"Falha do Pushback: erro iniciando mensagens de áudio. Por favor, reinstale o"
+" BetterPushback."
+
+#: bp.c:1162
+msgid "Pushback failure: aircraft not on ground."
+msgstr "Falha do Pushback: aeronave não está em solo."
+
+#: bp.c:1170
+msgid "Pushback failure: aircraft not stationary."
+msgstr "Falha do Pushback: aeronave não está parada."
+
+#: bp.c:1177
+msgid "Pushback failure: gear not extended."
+msgstr "Falha do Pushback: trem de pouso não está estendido."
+
+#: bp.c:1195
+msgid "Disconnect tow + headset and switch to hand signals."
+msgstr "Desconectar rebocador + headset e mudar para sinalização com as mãos."
+
+#: bp.c:1197
+msgid "Reconnect tow and await further instructions."
+msgstr "Reconectar rebocador e aguardar instruções."
+
+#: bp.c:1292
+msgid ""
+"Pushback advisory: you have your radio volume turned very low and may not be "
+"able to hear ground crew. Please increase your radio volume in the X-Plane "
+"sound preferences."
+msgstr ""
+"Alerta do Pushback: você tem seu volume de rádio muito baixo e pode não ser "
+"capaz de ouvir a equipe de solo. Por favor aumente seu volume de rádio nas "
+"preferências de som do X-Plane."
+
+#: bp.c:1468
+msgid "Pushback failure: aircraft is not compatible with ProgressiveTaxi."
+msgstr "Falha do Pushback: aeronave não é compatível com o BetterPushback."
+
+#: bp.c:1478
+msgid ""
+"Pushback failure: cannot push this aircraft with engines running. Shutdown "
+"engines first."
+msgstr ""
+"Falha do Pushback: não é possível rebocar com os motores funcionando. "
+"Desligue os motores primeiro."
+
+#: bp.c:98
+msgid "Some doors are still opened or the GPU or the ASU are still connected. I'm waiting for all of them closed and disconnected then I will proceed."
+msgstr ""
+"Algumas portas ainda estão abertas ou a GPU ou a ASU ainda estão conectadas. Estou esperando que todas elas estejam fechadas e desconectadas, então prosseguirei."
+
+#: bp.c:1494
+msgid ""
+"Pushback failure: please first plan your pushback to tell me where you want "
+"to go."
+msgstr ""
+"Falha do Pushback: por favor, planeje primeiramente seu pushback para"
+" informar para onde deseja ir."
+
+#: bp.c:1840
+#, c-format
+msgid ""
+"ERROR: master requested tug \"%s\", which we don't have in our in our "
+"library. Please sync your tug libraries before trying again."
+msgstr ""
+"ERRO: Rebocador solicitado \"%s\" não existe em nossa biblioteca. "
+"Por favor sincronize suas bibliotecas de rebocadores antes de "
+"tentar novamente."
+
+#: bp.c:1942
+msgid ""
+"Pushback warning: unable to remove your chocks. Remove them yourself, or "
+"else I won't be able to push your aircraft."
+msgstr ""
+"Alerta do Pushback: não foi possível remover seus calços de roda. Remova-os"
+" você mesmo, ou "
+"não serei capaz de rebocar sua aeronave."
+
+#: bp.c:2197
+msgid "Hey! Quit blinding me with your landing lights! Turn them off!"
+msgstr "Hey! Não me cegue com suas luzes de pouso! Desligue-as!"
+
+#: bp.c:2200
+msgid "Hey! Quit blinding me with your taxi light! Turn it off!"
+msgstr "Hey! Não me cegue com suas luzes de táxi! Desligue-as!"
+
+#: bp.c:2987
+msgid ""
+"Pushback failure: your flight controls are preventing me from steering the "
+"aircraft. Unbind any buttons you have set to \"toggle nosewheel steering\"."
+msgstr ""
+"Falha do Pushback: seus controles de voo estão impedindo o rebocador de "
+"manobrar a aeronave. Desligue qualquer botão que tenha acionado para "
+"\"alternar manobrabilidade da roda do nariz\" (toggle nosewheel steering)."
+
+#: bp_cam.c:1172
+msgid "Pushback failure: aircraft is incompatible with ProgressiveTaxi."
+msgstr "Falha do Pushback: aeronave incompatível com o BetterPushback."
+
+#: bp_cam.c:1187
+msgid "Pushback failure: no suitable tug for your aircraft."
+msgstr "Falha do Pushback: rebocador incompatível com sua aeronave."
+
+#: bp_cam.c:1195
+msgid "Can't start planner: aircraft not stationary."
+msgstr "Não pode iniciar o planejador: aeronave não está parada."
+
+#: bp_cam.c:1200
+msgid ""
+"Can't start planner: pushback already in progress. Please stop the pushback "
+"operation first."
+msgstr ""
+"Não pode iniciar o planejador: pushback já em progresso. Por favor primeiro "
+"pare a operação do pushback."
+
+#: cab_view.c:346
+msgid "Left mouse button to reorient view"
+msgstr "Botão esquerdo do mouse para reorientar a visão"
+
+#: cfg.c:526
+msgid "Default output device"
+msgstr "Dispositivo de saída padrão"
+
+#: cfg.c:610
+msgid "User interface on monitor #"
+msgstr "Interface do usuário no monitor #"
+
+#: cfg.c:611
+msgid "Automatic"
+msgstr "Automático"
+
+#: cfg.c:612
+msgid "Monitor #0"
+msgstr "Monitor #0"
+
+#: cfg.c:613
+msgid "Monitor #1"
+msgstr "Monitor #1"
+
+#: cfg.c:614
+msgid "Monitor #2"
+msgstr "Monitor #2"
+
+#: cfg.c:615
+msgid "Monitor #3"
+msgstr "Monitor #3"
+
+#: cfg.c:616
+msgid "Monitor #4"
+msgstr "Monitor #4"
+
+#: cfg.c:617
+msgid "Monitor #5"
+msgstr "Monitor #5"
+
+#: cfg.c:626
+msgid "User interface"
+msgstr "Interface do usuário"
+
+#: cfg.c:627
+msgid "X-Plane's language"
+msgstr "Idioma do X-Plane"
+
+#: cfg.c:640
+msgid "Ground crew audio"
+msgstr "Áudio da equipe do solo"
+
+msgid 
+    "My language only at domestic airports:\n"
+    "Ground crew speaks my language only if the country the airport is "
+    "in speaks my language. Otherwise the ground crew speaks English "
+    "with a local accent.\n\n"
+    "My language at all airports:\n"
+    "Ground crew speaks my language irrespective "
+    "of what country the airport is in.\n\n"
+    "English at all airports:\n"
+    "Ground crew always speaks English "
+    "with a local accent."
+msgstr
+"Meu idioma somente em aeroportos domésticos:\n"
+"Equipe do solo fala meu idioma somente se o país "
+"do aeroporto fala meu idioma. Caso contrário o equipe "
+"de solo fala inglês com o sotaque local.\n\n"
+"Meu idioma em todos os aeroportos:\n"
+"Equipe do solo fala meu idioma independente do país do aeroporto.\n\n"
+"Inglês em todos os aeroportos:\n"
+"Equipe do solo sempre fala inglês com o sotaque local."
+
+#: cfg.c:642
+msgid "My language only at domestic airports"
+msgstr "Meu idioma somente em aeroportos domésticos"
+
+#: cfg.c:646
+msgid "My language at all airports"
+msgstr "Meu idioma em todos os aeroportos"
+
+#: cfg.c:650
+msgid "English at all airports"
+msgstr "Inglês em todos os aeroportos"
+
+#: cfg.c:655
+msgid "Radio output device"
+msgstr "Dispositivo de saída de rádio"
+
+#: cfg.c:658
+msgid "Sound output device"
+msgstr "Dispositivo de saída de som"
+
+#: cfg.c:662
+msgid "Miscellaneous"
+msgstr "Diversos"
+
+#: cfg.c:664
+msgid "Auto disconnect when done"
+msgstr "Desconexão automática quando terminar"
+
+#: cfg.c:668
+msgid "Ignore check parking brake is set"
+msgstr "Ignorar verificação do freio de estacionamento"
+
+#: cfg.c:672
+msgid "Doors/GPU/ASU check"
+msgstr "Verificação de portas/GPU/ASU"
+
+#: cfg.c:676
+msgid "Hide the magic squares"
+msgstr "Ocultar os quadrados mágicos"
+
+#: cfg.c:680
+msgid "Hide default X-Plane 11 tug"
+msgstr "Ocultar o rebocador padrão do X-Plane 11"
+
+#: cfg.c:700 cfg.c:702
+msgid "Progressive Taxi Preferences"
+msgstr "Preferências do BetterPushback"
+
+#: cfg.c:734
+msgid "Magic squares position"
+msgstr "Posição quadrados mágicos"
+
+#: cfg.c:748
+msgid "Save preferences"
+msgstr "Salvar preferências"
+
+#: cfg.c:754
+msgid "Settings related to the current aircraft"
+msgstr "Configurações relacionadas à aeronave atual"
+
+#: xplane.c:497
+msgid "ERROR: Unable to select pushback tug view at this time."
+msgstr "ERRO: Não é possível selecionar a visão do rebocador nesse momento."
+
+#: xplane.c:634 xplane.c:660
+msgid ""
+"Pushback failure: smartcopilot attempted to switch master/slave or network "
+"connection lost. Stopping operation."
+msgstr ""
+"Falha do Pushback: smartcopilot tentou alternar master/slave ou a conexão de "
+"rede foi perdida. Parando a operação."
+
+#: xplane.c:649 xplane.c:671
+msgid ""
+"Pushback failure: Shared Flight attempted to switch pilot flying or network "
+"connection lost. Stopping operation."
+msgstr ""
+"Falha do Pushback: Voo compartilhado tentou alternar piloto ou a conexão de"
+" rede foi perdida. Parando a operação."
+
+#: xplane.c:760 xplane.c:920
+msgid "Start pushback"
+msgstr "Iniciar o pushback"
+
+msgid "Change pushback"
+msgstr "Mudar o pushback"
+
+#: xplane.c:762 xplane.c:922
+msgid "Stop pushback"
+msgstr "Parar o pushback"
+
+#: xplane.c:764
+msgid "Start pushback planner"
+msgstr "Iniciar o planejador do pushback"
+
+#: xplane.c:766
+msgid "Stop pushback planner"
+msgstr "Parar o planejador do pushback"
+
+#: xplane.c:768
+msgid "Connect tug before entering pushback plan"
+msgstr "Conectar o rebocador antes de solicitar um plano de pushback"
+
+#: xplane.c:770
+msgid "View from tug's cab."
+msgstr "Visão da cabine do rebocador."
+
+#: xplane.c:773
+msgid "Recreate scenery routes from WED files."
+msgstr "Recriar rotas do cenário a partir dos arquivos WED."
+
+#: xplane.c:776
+msgid "Abort pushback during coupled push"
+msgstr "Cancelar pushback durante manobra acoplado"
+
+#: xplane.c:914
+msgid "Pre-plan pushback"
+msgstr "Pré-planejamento do pushback"
+
+#: xplane.c:916
+msgid "Close pushback planner"
+msgstr "Fechar o planejador do pushback"
+
+#: xplane.c:918
+msgid "Connect tug first"
+msgstr "Conectar o rebocador primeiro"
+
+#: xplane.c:926
+msgid "Preferences..."
+msgstr "Preferências..."
+
+#: xplane.c:924
+msgid "Tug cab view"
+msgstr "Vista da cabine do rebocador"
+
+msgid "Can't start pushback planner: please set the parking brake first."
+msgstr ""
+"Não pode iniciar o planejador: por favor primeiro acione o freio de "
+"estacionamento."
+
+msgid ""
+"Pushback failure: aircraft has non-positive wheelbase. Sorry, tail "
+"draggers aren't supported."
+msgstr ""
+"Falha do Pushback: aeronave não tem a distância entre eixos adequada. "
+"Desculpe, trens de pouso convencionais não são suportados."
+
+msgid ""
+"Ground crew speaks my language only if the country the airport is "
+"in speaks my language. Otherwise the ground crew speaks English "
+"with a local accent."
+msgstr ""
+"Equipe de solo fala meu idioma somente se o pais\n"
+"do aeroporto fala meu idioma. Caso contrario a equipe\n"
+"de solo fala inglês com o sotaque local."
+
+msgid ""
+"Ground crew speaks my language irrespective of what country the airport "
+"is in."
+msgstr "Equipe de solo fala meu idioma independente do pais do aeroporto."
+
+msgid "Ground crew always speaks English with a local accent."
+msgstr "Equipe de solo sempre fala inglês com o sotaque local."
+
+msgid "Save current preferences to disk."
+msgstr "Salvar preferencias no disco."
+
+msgid "Hint: hover your mouse cursor over any label to show a short description of what it does."
+msgstr "Dica: passe o cursor do mouse sobre qualquer etiqueta para mostrar uma breve descrição do que ela faz."
+
+
+msgid ""
+"Never ask and always automatically disconnect "
+"the tug when the pushback operation is complete."
+msgstr ""
+"Nunca pedir e sempre desconectar automaticamente "
+"o rebocador quando a operação de pushback terminar."
+
+msgid ""
+"Never check \"set parking brake\".\n"
+"Some aircraft stuck on this check.\n"
+"It's on the beginning and on the end.\n"
+"This should solve this problem for some aircrafts. (KA350 for instance)."
+msgstr ""
+"Nunca verificar o \"acionar freio de estacionamento\".\n"
+"Algumas aeronaves travam nesta checagem.\n"
+"Isso e feito no inicio e no fim.\n"
+"Isto deve resolver este problema para algumas aeronaves (KA350 por "
+"exemplo)."
+
+msgid ""
+"Hides the shortcut buttons on the left side of the screen.\n"
+"The first button starts the planner and the second starts the push-back."
+msgstr ""
+"Oculta os botões de atalho no lado esquerdo da tela.\n"
+"O primeiro botão inicia o planejador e o segundo inicia o pushback."
+
+msgid ""
+"Hides default X-Plane 11 pushback tug.\n"
+"Restart X-Plane for this change to take effect."
+msgstr ""
+"Oculta o rebocador padrão do X-Plane 11.\n"
+"Reinicie o X-Plane para esta mudança ter efeito."
+
+msgid ""
+"ProgressiveTaxi (a fork of BetterPushback) is open-source software. See COPYING for more information."
+msgstr ""
+"BetterPushback e um software de código aberto. Veja COPYING para mais "
+"informações."
+
+msgid   "Select the action after the doors/GPU/ASU status check is done before starting the push-back.\n"
+        "Active with ground crew message: The ground crew will tell you if the doors are not closed.\n"
+        "Active, but stay silent: The ground crew will wait, but not say anything if the doors are not closed.\n"
+        "Ignore: The doors/GPU/ASU status check is ignored and the push-back starts immediately, even if the doors are not closed or the GPU/ASU is still connected."
+msgstr "Selecione a ação após a verificação do status das portas/GPU/ASU ser concluída antes de iniciar o pushback.\n"
+        "Ativo com mensagem da equipe de solo: A equipe de solo informará se as portas não estiverem fechadas.\n"
+        "Ativo, mas silencioso: A equipe de solo aguardará, mas não dirá nada se as portas não estiverem fechadas.\n"
+        "Ignorar: A verificação do status das portas/GPU/ASU é ignorada e o pushback começa imediatamente, mesmo que as portas não estejam fechadas ou a GPU/ASU ainda esteja conectada."
+
+msgid ""
+"In case of multiple monitors configuration, BpB need to use the primary "
+"monitor\n"
+"(the one with the x-plane menus), BpB is able to select it "
+"automatically.\n"
+"If not select the one that works ! (the monitor numbers are arbitrary)."
+msgstr ""
+"No caso de configuração com múltiplos monitores, o BpB precisa usar o "
+"monitor primário \n"
+"(aquele que possui os menus do X-Plane). O BpB e capaz de selecioná-lo "
+"automaticamente.\n"
+"Caso contrario, selecione o que funciona! (os números dos monitores são "
+"arbitrarios)."
+
+msgid "Slide this bar to move the magic squares up or down."
+msgstr ""
+"Deslize a barra para mover os quadrados mágicos para cima ou para baixo."
+
+#: src/bp.c:2185
+msgid   "Waiting for the parking brakes release"
+msgstr  "Esperando pela liberação do freio de estacionamento"
+
+#: src/bp.c:2330 src/bp.c:3252 src/bp.c:3256 src/bp.c:3257
+msgid   "Waiting for the parking brakes set"
+msgstr  "Esperando pelo acionamento do freio de estacionamento"
+
+#: src/bp.c:3212 src/bp.c:3216 src/bp.c:3217
+msgid   "Push-back called"
+msgstr  "Rebocador chamado"
+
+#: src/bp.c:3216 src/bp.c:3220 src/bp.c:3221
+msgid   "Driving to the aircraft"
+msgstr  "Dirigindo para a aeronave"
+
+#: src/bp.c:3220 src/bp.c:3224 src/bp.c:3228 src/bp.c:3225 src/bp.c:3229
+msgid   "Waiting for doors/GPU/ASU closed/disconnected"
+msgstr  "Esperando que as portas/GPU/ASU sejam fechadas/desconectadas"
+
+#: src/bp.c:3226 src/bp.c:3230 src/bp.c:3231
+msgid   "Opening the cradle"
+msgstr  "Abrindo o berço"
+
+#: src/bp.c:3256 src/bp.c:3260 src/bp.c:3261
+msgid   "Connecting to the aircraft"
+msgstr  "Conectando à aeronave"
+
+#: src/bp.c:3266 src/bp.c:3270 src/bp.c:3271
+msgid   "Connected to the aircraft"
+msgstr  "Conectado à aeronave"
+
+#: src/bp.c:3270 src/bp.c:3274 src/bp.c:3275
+msgid   "Push-back started"
+msgstr  "Pushback iniciado"
+
+#: src/bp.c:3295 src/bp.c:3299 src/bp.c:3300
+msgid   "Push-back in progress"
+msgstr  "Pushback em progresso"
+
+#: src/bp.c:3299 src/bp.c:3303 src/bp.c:3304
+msgid   "Push-back stopping"
+msgstr  "Pushback parando"
+
+#: src/bp.c:3303 src/bp.c:3307 src/bp.c:3308
+msgid   "Push-back stopped"
+msgstr  "Pushback parado"
+
+#: src/bp.c:3307 src/bp.c:3311 src/bp.c:3312
+msgid   "Lowering the nose"
+msgstr  "Abaixando o nariz"
+
+#: src/bp.c:3311 src/bp.c:3315 src/bp.c:3316
+msgid   "Ungrabbing the nose"
+msgstr  "Soltando o nariz"
+
+#: src/bp.c:3315 src/bp.c:3319 src/bp.c:3320
+msgid   "Waiting the OK to disconnect"
+msgstr  "Esperando o OK para desconectar"
+
+#: src/bp.c:3319 src/bp.c:3323 src/bp.c:3324
+msgid   "Disconnecting the tug away from the aircraft"
+msgstr  "Desconectando o rebocador da aeronave"
+
+#: src/bp.c:3360 src/bp.c:3364 src/bp.c:3365
+msgid   "Closing the cradle"
+msgstr  "Fechando o berço"
+
+#: src/bp.c:3364 src/bp.c:3368 src/bp.c:3372 src/bp.c:3369 src/bp.c:3373
+msgid   "Moving to the side of the aircraft"
+msgstr  "Movendo para o lado da aeronave"
+
+#: src/bp.c:3375 src/bp.c:3379 src/bp.c:3380
+msgid   "Showing the pin and the clear signal"
+msgstr  "Mostrando o pino e o sinal de liberado"
+
+#: src/bp.c:3379 src/bp.c:3383 src/bp.c:3384
+msgid   "Driving the tug away back to his station"
+msgstr  "Dirigindo o rebocador de volta para sua estação"
+
+
+#: src/bp.c:3277 src/bp.c:2153
+msgid   "Connected to the aircraft, waiting for clearance"
+msgstr  "Conectado à aeronave, esperando pela liberação"
+
+#: src/bp.c:3279 src/bp.c:3298 src/bp.c:3295 src/bp.c:3304
+msgid   "Lifting the aircraft"
+msgstr  "Levantando a aeronave"
+
+#: src/bp.c:3275 src/bp.c:3294 src/bp.c:3291 src/bp.c:3300
+msgid   "Grabbing the aircraft"
+msgstr  "Conectando a aeronave"
+
+#: src/cfg.c:677
+msgid   "Always connect the tug first"
+msgstr  "Sempre conectar o rebocador primeiro"
+
+msgid "The push process is always halted when the tug is at the nose of the aircraft.\n"
+       "The process will proceed by triggering again the 'start pushback' command."
+msgstr "O processo de reboque e sempre interrompido quando o rebocador esta no nariz da aeronave.\n"
+        "O processo continuara apos acionar novamente o comando 'iniciar pushback'."
+
+msgid "Audio settings"
+msgstr "Configurações de áudio"
+
+msgid   "Push-back waiting to be called"
+msgstr  "Reboque aguardando para ser chamado"
+
+msgid "The tug appears next to the plane avoiding in certain case that he is "
+    "travelling inside the buildings."
+msgstr  "O reboque aparece ao lado do avião, evitando em alguns casos que ele passe por dentro dos prédios."
+
+msgid "The tug will appear once the beacon light is switched from off to on "
+      "then the process will proceed as 'connect the tug first'."
+msgstr  "O reboque aparecerá assim que a luz do beacon for ligada, "
+        "então o processo continuará com 'conectar o reboque primeiro'."
+
+msgid "Tug starts near the aircraft"
+msgstr  "O reboque começa próximo à aeronave"
+
+msgid   "Active with ground crew message"
+msgstr  "Ativo com mensagem da equipe de solo"
+
+msgid   "Active, but stay silent"
+msgstr  "Ativo, mas permaneça em silêncio"
+
+msgid   "Ignore"
+msgstr  "Ignorar"
+
+msgid "Tug called by activating the beacon"
+msgstr  "O reboque é acionado ao ativar o beacon"
+
+msgid "Some Eye tracker plugins use the X-plane camera system and therefore "
+    "doesn't allow BpB to work properly "
+    "while using the planner or the tug view.\n\n"
+    "If it is the case, select the plugin that is in conflit with BpB.\n\n"
+    "CAUTION: At this point, you know what you are doing, selecting the wrong "
+    "plugin may cause X-plane to crash.\n"
+    "Otherwise this setting must be set to : None."
+msgstr "Alguns plugins de rastreamento ocular (Eye tracking) usam o sistema de câmeras do X-Plane "
+    "e podem interferir no funcionamento correto do BpB "
+    "ao usar o planejador ou a visão do rebocador.\n\n"
+    "Nesse caso, selecione o plugin que está em conflito com o BpB.\n\n"
+    "ATENÇÃO: Neste ponto, você deve saber o que está fazendo. "
+    "Selecionar o plugin errado pode fazer o X-Plane fechar inesperadamente.\n"
+    "Se não houver nenhum problema, mantenha esta configuração em: Nenhum."
+
+msgid "Some aircraft plugin may be not compatible with BpB\n"
+  "If it is the case, select the plugin that is in conflit with BpB.\n\n"
+  "CAUTION: At this point, you know what you are doing, selecting the wrong "
+  "plugin may cause X-plane to crash.\n"
+  "Otherwise this setting must be set to : None."
+msgstr "Alguns plugins desta aeronave podem não ser compatíveis com o BpB.\n\n"
+    "Nesse caso, selecione o plugin que está em conflito com o BpB.\n\n"
+    "ATENÇÃO: Neste ponto, você deve saber o que está fazendo. "
+    "Selecionar o plugin errado pode fazer o X-Plane fechar inesperadamente.\n"
+    "Se não houver nenhum problema, mantenha esta configuração em: Nenhum."
+
+msgid  "None"
+msgstr  "Nenhum"
+
+msgid "ACF Plugin Exclusion (Experimental)"
+msgstr "Exclusão de plugin ACF (experimental)"
+
+msgid "Eye Tracker Plugin Exclusion"
+msgstr "Exclusão de plugin Eye Tracker"
+
+msgid "Yes"
+msgstr "Sim"
+
+msgid "No"
+msgstr "Não"
+
+msgid "Use Aircraft setting"
+msgstr "Usar a configuração da aeronave"
+
+msgid   "Reload Progressive Taxi"
+msgstr  "Recarregar BetterPushback"
+
+msgid "Waiting for planning the pushback"
+msgstr "Aguardando o planejamento do pushback"
+
+msgid "Ground crew audio relative default audio volume:\n"
+      "The volume can be changed here or by using the dataref:\n"
+      "'bp/ground_crew_audio_volume'"
+
+msgstr "Volume padrão relativo do áudio da equipe de solo:\n"
+        "O volume pode ser alterado aqui ou usando o dataref:\n"
+        "'bp/ground_crew_audio_volume'"
+
+msgid "Ground crew audio volume"
+msgstr "Volume do áudio da equipe de solo"
+
+msgid "End pushback and disconnect"
+msgstr "Encerrar o pushback e desconectar"
+
+msgid "Pause/Resume automatic pushback"
+msgstr "Pausar/Retomar o pushback automático"
+
+msgid "Ground Operations: Show/Hide"
+msgstr "Operações em solo: Mostrar/Ocultar"
+
+msgid "Ground Operations: Expand/Collapse"
+msgstr "Operações em solo: Expandir/Recolher"
+
+msgid "Tug available"
+msgstr "Trator disponível"
+
+msgid "Button click volume"
+msgstr "Volume dos cliques"
+
+msgid "Ground Operations button clicks only. 0% mutes clicks.\n"
+    "Changes apply immediately; use Save preferences to keep them.\n"
+    "Release the slider to preview the selected volume."
+msgstr "Somente cliques dos botões de operações em solo. 0% silencia os cliques.\n"
+    "As alterações são imediatas; use «Salvar preferências» para mantê-las.\n"
+    "Solte o controle para ouvir o volume selecionado."
+
+msgid "Changes are immediate; use \"Save preferences\" to persist them.\n"
+msgstr "As alterações são imediatas; use \"Salvar preferências\" para mantê-las.\n"
+
+msgid "Release the slider to preview the selected volume."
+msgstr "Solte o controle para ouvir o volume selecionado."
+
+msgid "Progressive Taxi Ground Operations"
+msgstr "Operações em solo do BetterPushback"
+
+msgid "Tug"
+msgstr "Trator"
+
+msgid "Connect"
+msgstr "Conectar"
+
+msgid "Comms"
+msgstr "Comms"
+
+msgid "Push"
+msgstr "Pushback"
+
+msgid "Clear"
+msgstr "Livre"
+
+msgid "Ground operations"
+msgstr "Operações em solo"
+
+msgid "Return window to X-Plane"
+msgstr "Retornar a janela ao X-Plane"
+
+msgid "Pop out to an operating-system window"
+msgstr "Abrir em uma janela do sistema"
+
+msgid "Click, or hover here for one second, to collapse"
+msgstr "Clique ou mantenha o cursor aqui por um segundo para recolher"
+
+msgid "Hide Ground Operations"
+msgstr "Ocultar operações em solo"
+
+msgid "Click the progress rail to collapse Ground Operations"
+msgstr "Clique na barra de progresso para recolher as operações em solo"
+
+msgid "Keep operation"
+msgstr "Continuar operação"
+
+msgid "Cancel; keep the route and tug connected"
+msgstr "Cancelar; manter a rota e o trator conectado"
+
+msgid "Confirm end"
+msgstr "Confirmar encerramento"
+
+msgid "Stop completely, discard the route, and disconnect"
+msgstr "Parar completamente, descartar a rota e desconectar"
+
+msgid "Controlled stop; route and steering state are retained"
+msgstr "Parada controlada; rota e estado da direção são mantidos"
+
+msgid "Continue the accepted route from the hold"
+msgstr "Continuar a rota aceita a partir da parada"
+
+msgid "Disconnect the tug and continue to the hand signal"
+msgstr "Desconectar o trator e continuar até o sinal manual"
+
+msgid "Reconnect the tug and return to route planning"
+msgstr "Reconectar o trator e voltar ao planejamento da rota"
+
+msgid "Interactive | Offline safe"
+msgstr "Interativo | Seguro offline"
+
+msgid "PILOT ACTION"
+msgstr "AÇÃO DO PILOTO"
+
+msgid "CURRENT TASK"
+msgstr "TAREFA ATUAL"
+
+msgid "Planner opened. Define the route."
+msgstr "Planejador aberto. Defina a rota."
+
+msgid "Pushback plan saved."
+msgstr "Plano de pushback salvo."
+
+msgid "Ground crew: Tug approaching."
+msgstr "Equipe de solo: trator se aproximando."
+
+msgid "Ground crew: Set parking brake."
+msgstr "Equipe de solo: acione o freio de estacionamento."
+
+msgid "Ground crew: Ready to connect."
+msgstr "Equipe de solo: pronta para conectar."
+
+msgid "Ground crew: Winching nose gear."
+msgstr "Equipe de solo: puxando o trem de pouso dianteiro."
+
+msgid "Ground crew: Tug connected."
+msgstr "Equipe de solo: trator conectado."
+
+msgid "Ground crew: Starting pushback."
+msgstr "Equipe de solo: iniciando o pushback."
+
+msgid "Ground crew: Starting tow."
+msgstr "Equipe de solo: iniciando o reboque."
+
+msgid "Ground crew: Start engines later."
+msgstr "Equipe de solo: ligue os motores mais tarde."
+
+msgid "Ground crew: Tow; start later."
+msgstr "Equipe de solo: reboque; ligue os motores mais tarde."
+
+msgid "Ground crew: Pushback complete."
+msgstr "Equipe de solo: pushback concluído."
+
+msgid "Ground crew: Disconnecting tug."
+msgstr "Equipe de solo: desconectando o trator."
+
+msgid "Ground crew: Clear on the right."
+msgstr "Equipe de solo: livre à direita."
+
+msgid "Ground crew: Clear on the left."
+msgstr "Equipe de solo: livre à esquerda."
+
+msgid "SIM WX unavailable"
+msgstr "Meteorologia do SIM indisponível"
+
+msgid "QNH unavailable"
+msgstr "QNH indisponível"
+
+msgid "No pilot action required"
+msgstr "Nenhuma ação do piloto necessária"
+
+msgid "Local plugin state"
+msgstr "Estado do plugin local"
+
+msgid "Local plugin | Offline"
+msgstr "Plugin local | Offline"
+
+msgid "current"
+msgstr "atual"
+
+msgid "Current"
+msgstr "Atual"
+
+msgid "Mixed sources"
+msgstr "Fontes mistas"
+
+msgid "STALE"
+msgstr "DESATUALIZADO"
+
+msgid "Stale"
+msgstr "Desatualizado"
+
+msgid "Call tow back"
+msgstr "Chamar o trator de volta"
+
+msgid "Call tug"
+msgstr "Chamar o trator"
+
+msgid "Plan tow"
+msgstr "Planejar o reboque"
+
+msgid "Plan push"
+msgstr "Planejar o pushback"
+
+msgid "End operation"
+msgstr "Encerrar operação"
+
+msgid "Change plan"
+msgstr "Alterar plano"
+
+msgid "Resume tow"
+msgstr "Retomar o reboque"
+
+msgid "Resume push"
+msgstr "Retomar o pushback"
+
+msgid "Pause tow"
+msgstr "Pausar o reboque"
+
+msgid "Pause push"
+msgstr "Pausar o pushback"
+
+msgid "Disconnect tug"
+msgstr "Desconectar o trator"
+
+msgid "Reconnect"
+msgstr "Reconectar"
+
+msgid "Acknowledge"
+msgstr "Confirmar"
+
+msgid "unknown"
+msgstr "desconhecido"
+
+msgid "Speed %.1f m/s"
+msgstr "Velocidade %.1f m/s"
+
+msgid "Speed --"
+msgstr "Velocidade --"
+
+msgid "Remaining --"
+msgstr "Restante --"
+
+msgid "Remaining %d m"
+msgstr "Restante %d m"
+
+msgid "REVIEW"
+msgstr "REVISÃO"
+
+msgid "COMPLETE"
+msgstr "CONCLUÍDO"
+
+msgid "ACTIVE"
+msgstr "ATIVO"
+
+msgid "WAITING"
+msgstr "EM ESPERA"
+
+msgid "GROUND CREW"
+msgstr "EQUIPE DE SOLO"
+
+msgid "ACTION"
+msgstr "AÇÃO"
+
+msgid "HOLD"
+msgstr "PAUSA"
+
+msgid "CONFIRMED"
+msgstr "CONFIRMADO"
+
+msgid "READY"
+msgstr "PRONTO"
+
+msgid "CLEAR"
+msgstr "LIVRE"
+
+msgid "STANDBY"
+msgstr "EM ESPERA"
+
+msgid "Set the parking brake"
+msgstr "Acione o freio de estacionamento"
+
+msgid "METAR -- | ATIS --"
+msgstr "METAR -- | ATIS --"
+
+msgid "Ground Operations interface size"
+msgstr "Tamanho da interface de operações em solo"
+
+msgid "Standard"
+msgstr "Padrão"
+
+msgid "Large"
+msgstr "Grande"
+
+msgid "Extra large"
+msgstr "Muito grande"
+
+msgid "Scales the complete Ground Operations interface, including text, controls, spacing and hit targets."
+msgstr "Dimensiona toda a interface de operações em solo, incluindo texto, controles, espaçamento e áreas de interação."
+
+msgid "Auto-expand for pilot actions"
+msgstr "Expandir automaticamente para ações do piloto"
+
+msgid ""
+"Expand the compact Ground Operations panel for required pilot actions, "
+"then collapse it shortly after the action is completed."
+msgstr ""
+"Expande o painel compacto de Operações em Solo quando uma ação do piloto "
+"é necessária e o recolhe novamente pouco depois que a ação é concluída."
+
+msgid "Pushback interface"
+msgstr "Interface de pushback"
+
+msgid "Ground Operations"
+msgstr "Operações em solo"
+
+msgid "Legacy magic squares"
+msgstr "Quadrados mágicos clássicos"
+
+msgid "Display marshaller"
+msgstr "Exibir o balizador"
+
+msgid ""
+"Show the marshaller during normal pushback operations. Emergency Tow "
+"never displays the marshaller."
+msgstr ""
+"Exibe o balizador durante operações normais de pushback. O reboque de "
+"emergência nunca exibe o balizador."
+
+msgid ""
+"Select one global pushback interface. Ground Operations uses the new "
+"panel; Legacy magic squares restores the original operational buttons. "
+"The selection applies immediately while idle. Save preferences to keep "
+"it for the next simulator start."
+msgstr ""
+"Selecione uma interface global de pushback. Operações em solo usa o novo "
+"painel; Quadrados mágicos clássicos restaura os botões operacionais originais. "
+"A seleção é aplicada imediatamente quando o sistema está inativo. Salve as "
+"preferências para mantê-la na próxima inicialização do simulador."

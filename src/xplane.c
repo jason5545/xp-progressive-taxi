@@ -14,6 +14,7 @@
  */
 /*
  * Copyright 2022 Saso Kiselkov. All rights reserved.
+ * Copyright 2024 Robert Wellinger. All rights reserved.
  */
 
 #include <stddef.h>
@@ -39,13 +40,16 @@
 #include <acfutils/wav.h>
 #include <acfutils/time.h>
 
+#include "airport_cache_manifest.h"
 #include "bp.h"
 #include "bp_cam.h"
 #include "cab_view.h"
 #include "cfg.h"
+#include "emergency_tow.h"
 #include "ff_a320_intf.h"
-#include "ptx_xp.h"
+#include "ground_ops_ui.h"
 #include "msg.h"
+#include "ptx_xp.h"
 #include "tug.h"
 #include "xplane.h"
 #include "wed2route.h"
@@ -53,152 +57,203 @@
 /* Enables leaving bp_tug_name set to facilitate local master/slave debug */
 /*#define	SLAVE_DEBUG*/
 
-/*
- * Renamed so that this fork can be installed side-by-side with the original
- * BetterPushback (signature "skiselkov.BetterPushback"). See AGENTS.md.
- */
-#define BP_PLUGIN_NAME		"ProgressiveTaxi-" BP_PLUGIN_VERSION
-#define BP_PLUGIN_SIG		"jason5545.ProgressiveTaxi"
-#define BP_PLUGIN_DESCRIPTION	"Automated pushback and progressive taxi " \
-	"(fork of BetterPushback)"
-#define	ORIG_BP_PLUGIN_SIG	"skiselkov.BetterPushback"
-
-#define	STATUS_CHECK_INTVAL	1	/* second */
-enum {
-	SMARTCOPILOT_STATE_OFF = 0,	/* disconnected */
-	SMARTCOPILOT_STATE_SLAVE = 1,	/* connected and we're slave */
-	SMARTCOPILOT_STATE_MASTER = 2	/* connected and we're master */
+#define STATUS_CHECK_INTVAL 1 /* second */
+enum
+{
+    COUPLED_STATE_OFF = 0,       /* disconnected */
+    COUPLED_STATE_SLAVE = 1,     /* connected and we're slave */
+    COUPLED_STATE_MASTER = 2,    /* connected and we're master */
+    COUPLED_STATE_PASSENGER = -1 /* connected and we're passenger */
 };
 
-static bool_t		inited = B_FALSE;
+static bool_t inited = B_FALSE;
 
-static XPLMCommandRef	start_pb, stop_pb, start_cam, stop_cam, conn_first;
-static XPLMCommandRef	cab_cam, recreate_routes;
-static XPLMMenuID	root_menu;
-static int		plugins_menu_item;
-static int		start_pb_plan_menu_item, stop_pb_plan_menu_item;
-static int		start_pb_menu_item, stop_pb_menu_item;
-static int		cab_cam_menu_item, prefs_menu_item;
+XPLMCommandRef start_pb, start_cam, conn_first, stop_pb, pause_pb;
+XPLMCommandRef call_emergency_tow;
+static XPLMCommandRef stop_cam;
+static XPLMCommandRef cab_cam, recreate_routes;
+static XPLMCommandRef abort_push, pref_cmd, reload_cmd;
+static XPLMCommandRef manual_push_start, manual_push_start_no_yoke;
+static XPLMCommandRef manual_push_left, manual_push_right, manual_push_reverse;
+static XPLMCommandRef ground_ops_show_hide, ground_ops_expand_collapse;
+static XPLMMenuID root_menu;
+static int plugins_menu_item;
+static int start_pb_plan_menu_item, stop_pb_plan_menu_item;
+static int start_pb_menu_item, stop_pb_menu_item, conn_first_menu_item;
+static int cab_cam_menu_item, prefs_menu_item, reload_menu_item;
+static int ground_ops_show_hide_menu_item;
+static int ground_ops_expand_collapse_menu_item;
+static bool_t prefs_enable, stop_pb_plan_enable,
+    stop_pb_enable, conn_first_enable, cab_cam_enable;
+bool_t start_pb_plan_enable, start_pb_enable;
+static bp_interface_mode_t interface_mode = BP_INTERFACE_MODE_GROUND_OPS;
+
+static bool_t pref_widget_active_status = B_FALSE;
+bool_t hide_main_intf = B_FALSE;
+
+bool_t get_pref_widget_status(void);
+void set_pref_widget_status(bool_t active);
 
 static int start_pb_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
 static int stop_pb_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
+static int pause_pb_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
 static int start_cam_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
 static int stop_cam_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
 static int conn_first_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
+static int emergency_tow_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
 static int cab_cam_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+
 static int recreate_routes_handler(XPLMCommandRef, XPLMCommandPhase, void *);
 
-static bool_t		start_after_cam = B_FALSE;
+static int abort_push_handler(XPLMCommandRef, XPLMCommandPhase, void *);
 
-static char		xpdir[512];
-static char		plugindir[512];
-const char *const	bp_xpdir = xpdir;
-const char *const	bp_plugindir = plugindir;
+static int reload_handler(XPLMCommandRef, XPLMCommandPhase, void *);
 
-static bool_t		smartcopilot_present;
-static dr_t		smartcopilot_state;
+static int manual_push_left_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+static int manual_push_right_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+static int manual_push_reverse_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+static int ground_ops_show_hide_handler(XPLMCommandRef,
+    XPLMCommandPhase, void *);
+static int ground_ops_expand_collapse_handler(XPLMCommandRef,
+    XPLMCommandPhase, void *);
+static int manual_push_start_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+static int manual_push_start_no_yoke_handler(XPLMCommandRef, XPLMCommandPhase, void *);
+static int manual_push_reverse_handler(XPLMCommandRef, XPLMCommandPhase, void *);
 
-int			bp_xp_ver, bp_xplm_ver;
-XPLMHostApplicationID	bp_host_id;
-airportdb_t		*airportdb = NULL;
+static bool_t start_after_cam = B_FALSE;
+
+static char xpdir[512];
+static char plugindir[512];
+const char *const bp_xpdir = xpdir;
+const char *const bp_plugindir = plugindir;
+
+static bool_t smartcopilot_present;
+static dr_t smartcopilot_state;
+static bool_t sharedflight_present;
+static dr_t sharedflight_state;
+
+int bp_xp_ver, bp_xplm_ver;
+XPLMHostApplicationID bp_host_id;
+airportdb_t *airportdb = NULL;
 
 static bool_t bp_priv_enable(void);
+
 static void bp_priv_disable(void);
+
 static float bp_do_reload(float, float, int, void *);
 
-static bool_t			reload_rqst = B_FALSE;
-static XPLMCreateFlightLoop_t	reload_floop = {
-    .structSize = sizeof (reload_floop),
+static bool_t reload_rqst = B_FALSE;
+static bool_t interface_mode_change_rqst = B_FALSE;
+static bool_t legacy_magic_squares_reposition_rqst = B_FALSE;
+static bp_interface_mode_t requested_interface_mode =
+    BP_INTERFACE_MODE_GROUND_OPS;
+static XPLMCreateFlightLoop_t reload_floop = {
+    .structSize = sizeof(reload_floop),
     .phase = xplm_FlightLoop_Phase_AfterFlightModel,
     .callbackFunc = bp_do_reload,
-    .refcon = NULL
-};
-static XPLMFlightLoopID		reload_floop_ID = NULL;
+    .refcon = NULL};
+static XPLMFlightLoopID reload_floop_ID = NULL;
 
 /*
- * These datarefs are for syncing two instances of BetterPushback over the
- * net via syncing addons such as smartcopilot. This works as follows:
- * 1) Master/slave must not be switched during pushback (undefined behavior
- *	may result). It's possible to observe if BetterPushback is running by
- *	monitoring the read-only boolean "ptaxi/started" dataref. This dataref
- *	must NOT be synced, it's only a hint to smartcopilot whether
- *	switching is safe.
- * 2) The boolean dataref "ptaxi/slave_mode" must be set to 0 on the master and
- *	1 on the slave.
- * 3) The boolean dataref "ptaxi/op_complete" must be synced from master to
- *	slave. This signals to bp_run() that the pushback stage needs to
- *	progress to either PB_STEP_STOPPING if the tug has already attached,
- *	or immediately to bp_complete() if it has not. The master sets this
- *	dataref in response to either a "Stop" command request, or when it
- *	has processed all pushback segments. The slave cannot set this
- *	(master controls when pushback stops).
- * 4) The boolean dataref "ptaxi/plan_complete" must be synced from master to
- *	slave. This is a signal from the master machine to the slave that
- *	if late_plan_requested was in effect, the slave can continue with
- *	the state transitions past the late_plan_requested limit. This is
- *	needed because we don't transfer the route to the slave, so the
- *	slave cannot use the presence of a route as a condition to continue.
- * 5) The string dataref "ptaxi/tug_name" must be synced from master to slave.
- *	This string identifies which tug model the master selected (since tug
- *	selection is non-deterministic). The slave then instances its tug
- *	object using tug_alloc_man. Both master and slave must have identical
- *	tug libraries, otherwise sync fails.
- * 6) The command "ProgressiveTaxi/start" should be synced from mater to slave.
- *	There's no need to sync any other commands. The planning GUI is
- *	disabled on the slave machine and stopping of the pushback can only be
- *	performed by the master machine.
+ * These datarefs are surfaced so that coupling add-ons (SmartCopilot,
+ * SharedFlight, etc.) can keep two copies of BetterPushback in sync. The
+ * expected behaviour of each dataref/command is:
+ *
+ * - "ptaxi/started" (read-only): goes to 1 when pushback logic is running.
+ *   Use it only as a hint for whether switching master/slave roles is safe.
+ * - "ptaxi/connected" (read-only): becomes 1 once the tug is fully attached.
+ *   This mirrors the local PB_STEP_CONNECTED state for remote clients.
+ * - "ptaxi/slave_mode": writable flag that must be set to 0 on the master and
+ *   1 on the slave before engaging the tug. We must not change roles mid-run.
+ * - "ptaxi/op_complete": boolean the master toggles when pushback should end.
+ *   The slave watches this to jump to PB_STEP_STOPPING/bp_complete().
+ * - "ptaxi/plan_complete": master-side flag that flips to 1 as soon as a valid
+ *   pushback plan exists (route saved or late-plan completed). Slaves can
+ *   use this to continue past the late-plan gate even without segments.
+ * - "ptaxi/planner_open" (read-only): indicates whether the planner UI is shown.
+ *   Helpful for UI sync and for deciding which SmartCopilot controls to hide.
+ * - "ptaxi/tug_name": string identifying the exact tug picked on the master.
+ *   Both sides need an identical tug library for deterministic behaviour.
+ * - "ptaxi/parking_brake_override": when set to 1 on a slave, BetterPushback
+ *   reads the boolean "ptaxi/parking_brake_set" instead of the local brake
+ *   dataref. This allows remote hardware (or a master instance) to signal
+ *   the brake state explicitly.
+ *
+ * Commands: mirror the "ProgressiveTaxi/start" command from master to slave.
+ * The other commands remain local (including "ProgressiveTaxi/reload") – the
+ * slave GUI stays disabled and only the master can stop a pushback. Reload
+ * is only safe when pushback is idle and planner/prefs are closed.
+ * Master/slave assignments should therefore be established before either
+ * instance enters the pushback state machine.
  */
-static dr_t	bp_started_dr, bp_connected_dr, slave_mode_dr, op_complete_dr;
-static dr_t	plan_complete_dr, bp_tug_name_dr;
-bool_t		bp_started = B_FALSE;
-bool_t		bp_connected = B_FALSE;
-bool_t		slave_mode = B_FALSE;
-bool_t		op_complete = B_FALSE;
-bool_t		plan_complete = B_FALSE;
-char		bp_tug_name[64] = { 0 };
+static dr_t bp_started_dr, bp_connected_dr, slave_mode_dr, op_complete_dr;
+static dr_cfg_t slave_mode_dr_cfg ;
+static dr_t plan_complete_dr, planner_open_dr, bp_tug_name_dr;
+static dr_t pb_set_remote_dr, pb_set_override_dr;
+static dr_cfg_t pb_set_remote_dr_cfg, pb_set_override_dr_cfg;
+static dr_t bp_groud_crew_audio_volume_dr;
+static dr_t wing_walker_signal_dr;
+float bp_ground_crew_audio_volume ;
+static float wing_walker_signal_value;
+bool_t bp_started = B_FALSE;
+bool_t bp_connected = B_FALSE;
+bool_t slave_mode = B_FALSE;
+bool_t op_complete = B_FALSE;
+bool_t plan_complete = B_FALSE; /* BP_DATAREF plan_complete */
+bool_t planner_open = B_FALSE;  /* BP_DATAREF planner_open */
+bool_t pb_set_remote = B_FALSE;
+bool_t pb_set_override = B_FALSE;
+char bp_tug_name[64] = {0};
 
 /*
  * Aircraft plugins stop driving the nosewheel themselves while the original
  * BetterPushback's "bp/connected" is 1 (BetterPushback added it for that
- * purpose: "steering lockout"). The FlightFactor 777 v2 is one of them: with
- * only our renamed "ptaxi/connected" it keeps writing tire_steer_cmd and the
- * nosewheel stays at 0 deg during the push. So we also publish "bp/started"
- * and "bp/connected" under the original names, backed by the same variables,
- * unless the original BetterPushback is loaded and owns them.
+ * purpose: "steering lockout"; skiselkov/BetterPushbackC#268). Our own
+ * datarefs are renamed to ptaxi/..., so we also publish "bp/started" and
+ * "bp/connected" under the original names, backed by the same variables,
+ * unless the original BetterPushback is loaded and owns them. (11/14: this
+ * alone does not make the FlightFactor 777 v2 release its nosewheel.)
  */
-static dr_t	bp_started_alias_dr, bp_connected_alias_dr;
-static bool_t	bp_alias_drs = B_FALSE;
+static dr_t bp_started_alias_dr, bp_connected_alias_dr;
+static bool_t bp_alias_drs = B_FALSE;
 
 static void
 bp_alias_drs_init(void)
 {
-	if (bp_alias_drs)
-		return;
-	if (XPLMFindPluginBySignature(ORIG_BP_PLUGIN_SIG) !=
-	    XPLM_NO_PLUGIN_ID || XPLMFindDataRef("bp/connected") != NULL ||
-	    XPLMFindDataRef("bp/started") != NULL) {
-		logMsg("original BetterPushback datarefs already exist; "
-		    "aircraft that wait for bp/connected (FF 777) will not "
-		    "release nosewheel steering to us");
-		return;
-	}
-	dr_create_i(&bp_started_alias_dr, (int *)&bp_started, B_FALSE,
-	    "bp/started");
-	dr_create_i(&bp_connected_alias_dr, (int *)&bp_connected, B_FALSE,
-	    "bp/connected");
-	bp_alias_drs = B_TRUE;
-	logMsg("published bp/started and bp/connected for aircraft "
-	    "steering lockout");
+    if (bp_alias_drs)
+        return;
+    if (XPLMFindPluginBySignature(ORIG_BP_PLUGIN_SIG) != XPLM_NO_PLUGIN_ID ||
+        XPLMFindDataRef("bp/connected") != NULL ||
+        XPLMFindDataRef("bp/started") != NULL) {
+        logMsg(BP_WARN_LOG "original BetterPushback datarefs already exist; "
+            "aircraft that wait for bp/connected will not release "
+            "nosewheel steering to us");
+        return;
+    }
+    dr_create_i(&bp_started_alias_dr, (int *)&bp_started, B_FALSE,
+        "bp/started");
+    dr_create_i(&bp_connected_alias_dr, (int *)&bp_connected, B_FALSE,
+        "bp/connected");
+    bp_alias_drs = B_TRUE;
+    logMsg(BP_INFO_LOG "published bp/started and bp/connected for aircraft "
+        "steering lockout");
 }
 
 static void
 bp_alias_drs_fini(void)
 {
-	if (!bp_alias_drs)
-		return;
-	dr_delete(&bp_started_alias_dr);
-	dr_delete(&bp_connected_alias_dr);
-	bp_alias_drs = B_FALSE;
+    if (!bp_alias_drs)
+        return;
+    dr_delete(&bp_started_alias_dr);
+    dr_delete(&bp_connected_alias_dr);
+    bp_alias_drs = B_FALSE;
 }
 
 /*
@@ -211,264 +266,707 @@ bp_alias_drs_fini(void)
 static void
 set_xp11_tug_hidden(bool_t flag)
 {
-	static bool_t hidden = B_FALSE;
-	char *filename, *filename_backup;
+    static bool_t hidden = B_FALSE;
+    char *filename, *filename_backup;
 
-	if (flag == hidden || bp_xp_ver < 11000 || bp_xp_ver >= 12000)
-		return;
+    if (flag == hidden)
+    {
+        return;
+    }
+    else if (bp_xp_ver < 11000 || bp_xp_ver >= 12000)
+    {
+        logMsg(BP_WARN_LOG "Hidden xp11 default tug not supported. XP Version %d", bp_xp_ver);
+        return;
+    }
 
-	ASSERT3U(bp_xp_ver, >=, 11000);
+    ASSERT3U(bp_xp_ver, >=, 11000);
 
-	filename = mkpathname(bp_xpdir, "Resources", "default scenery",
-	    "sim objects", "apt_vehicles", "pushback", "Tug_GT110.obj", NULL);
-	filename_backup = mkpathname(bp_xpdir, "Resources", "default scenery",
-	    "sim objects", "apt_vehicles", "pushback",
-	    "Tug_GT110-ProgressiveTaxi-backup.obj", NULL);
+    filename = mkpathname(bp_xpdir, "Resources", "default scenery",
+                          "sim objects", "apt_vehicles", "pushback", "Tug_GT110.obj", NULL);
+    filename_backup = mkpathname(bp_xpdir, "Resources", "default scenery",
+                                 "sim objects", "apt_vehicles", "pushback",
+                                 "Tug_GT110-ProgressiveTaxi-backup.obj", NULL);
 
-	if (flag) {
-		FILE *fp;
+    if (flag)
+    {
+        FILE *fp;
 
-		if (!file_exists(filename, NULL)) {
-			logMsg("Failed to hide default X-Plane 11 tug: "
-			    "original tug file doesn't exist.");
-			goto out;
-		}
-		if (file_exists(filename_backup, NULL)) {
-			logMsg("Failed to hide default X-Plane 11 tug: "
-			    "backup tug file already exists.");
-			goto out;
-		}
-		if (rename(filename, filename_backup) != 0) {
-			logMsg("Failed to hide default X-Plane 11 tug: "
-			    "cannot rename original tug file: %s.",
-			    strerror(errno));
-			goto out;
-		}
-		fp = fopen(filename, "wb");
-		if (fp == NULL) {
-			logMsg("Failed to hide default X-Plane 11 tug: "
-			    "cannot write substitute tug object file.");
-			rename(filename_backup, filename);
-			goto out;
-		}
-		fprintf(fp, "A\n800\nOBJ\n");
-		fclose(fp);
-	} else {
-		if (!file_exists(filename, NULL) ||
-		    !file_exists(filename_backup, NULL)) {
-			logMsg("Failed to unhide default X-Plane 11 "
-			    "tug: subtitute file or backup file don't exist");
-			goto out;
-		}
-		if (!remove_file(filename, B_FALSE)) {
-			logMsg("Failed to unhide default X-Plane 11 "
-			    "tug: cannot remove subtitute file");
-			goto out;
-		}
-		if (rename(filename_backup, filename) != 0) {
-			logMsg("Failed to unhide default X-Plane 11 "
-			    "tug: couldn't rename original file: %s",
-			    strerror(errno));
-			goto out;
-		}
-	}
+        if (!file_exists(filename, NULL))
+        {
+            logMsg(BP_WARN_LOG "Failed to hide default X-Plane 11 tug: "
+                               "original tug file doesn't exist.");
+            goto out;
+        }
+        if (file_exists(filename_backup, NULL))
+        {
+            logMsg(BP_WARN_LOG "Failed to hide default X-Plane 11 tug: "
+                               "backup tug file already exists.");
+            goto out;
+        }
+        if (rename(filename, filename_backup) != 0)
+        {
+            logMsg(BP_WARN_LOG "Failed to hide default X-Plane 11 tug: "
+                               "cannot rename original tug file: %s.",
+                   strerror(errno));
+            goto out;
+        }
+        fp = fopen(filename, "wb");
+        if (fp == NULL)
+        {
+            logMsg(BP_WARN_LOG "Failed to hide default X-Plane 11 tug: "
+                               "cannot write substitute tug object file.");
+            rename(filename_backup, filename);
+            goto out;
+        }
+        fprintf(fp, "A\n800\nOBJ\n");
+        fclose(fp);
+    }
+    else
+    {
+        if (!file_exists(filename, NULL) ||
+            !file_exists(filename_backup, NULL))
+        {
+            logMsg(BP_WARN_LOG "Failed to unhide default X-Plane 11 "
+                               "tug: subtitute file or backup file don't exist");
+            goto out;
+        }
+        if (!remove_file(filename, B_FALSE))
+        {
+            logMsg(BP_WARN_LOG "Failed to unhide default X-Plane 11 "
+                               "tug: cannot remove subtitute file");
+            goto out;
+        }
+        if (rename(filename_backup, filename) != 0)
+        {
+            logMsg(BP_WARN_LOG "Failed to unhide default X-Plane 11 "
+                               "tug: couldn't rename original file: %s",
+                   strerror(errno));
+            goto out;
+        }
+    }
 
 out:
-	hidden = flag;
-	free(filename);
-	free(filename_backup);
+    hidden = flag;
+    free(filename);
+    free(filename_backup);
 }
 
 static void
 init_core_state(void)
 {
-	bp_started = B_FALSE;
-	bp_connected = B_FALSE;
-	slave_mode = B_FALSE;
-	op_complete = B_FALSE;
-	plan_complete = B_FALSE;
+    bp_started = B_FALSE;
+    bp_connected = B_FALSE;
+    slave_mode = B_FALSE;
+    op_complete = B_FALSE;
+    plan_complete = B_FALSE; /* BP_DATAREF plan_complete */
+    planner_open = B_FALSE;  /* BP_DATAREF planner_open */
+    emergency_tow_reset();
+    ground_ops_ui_reset_context();
+    cab_view_init();
+}
+
+static void
+enable_menu_items()
+{
+    bool_t reload_enable = (!bp_started && !planner_open &&
+        !get_pref_widget_status());
+
+    XPLMEnableMenuItem(root_menu, prefs_menu_item, prefs_enable);
+    XPLMEnableMenuItem(root_menu, reload_menu_item, reload_enable);
+    XPLMEnableMenuItem(root_menu, start_pb_menu_item, start_pb_enable);
+    XPLMEnableMenuItem(root_menu, stop_pb_menu_item, stop_pb_enable);
+    XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, start_pb_plan_enable);
+    XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, stop_pb_plan_enable);
+    XPLMEnableMenuItem(root_menu, conn_first_menu_item, conn_first_enable);
+    XPLMEnableMenuItem(root_menu, cab_cam_menu_item, cab_cam_enable);
+    XPLMEnableMenuItem(root_menu, ground_ops_show_hide_menu_item,
+        ground_ops_ui_is_enabled());
+    XPLMEnableMenuItem(root_menu, ground_ops_expand_collapse_menu_item,
+        ground_ops_ui_is_enabled());
+}
+
+bp_interface_mode_t
+bp_get_interface_mode(void)
+{
+    return (interface_mode);
+}
+
+static bool_t
+apply_interface_mode(bp_interface_mode_t requested_mode)
+{
+    bp_interface_mode_t new_mode = bp_interface_mode_normalize(
+        requested_mode);
+
+    if (new_mode == interface_mode)
+        return (B_TRUE);
+    if (bp_started || planner_open) {
+        logMsg(BP_WARN_LOG "Pushback interface cannot be changed during "
+            "an active operation or while the planner is open");
+        return (B_FALSE);
+    }
+
+    if (bp_interface_mode_uses_legacy_magic_squares(new_mode)) {
+        /* Capture the Ground Operations geometry before shutting it down. */
+        ground_ops_ui_fini();
+        interface_mode = new_mode;
+        ground_ops_ui_set_enabled(B_FALSE);
+        (void)conf_set_i(bp_conf, BP_INTERFACE_MODE_CONFIG_KEY,
+            interface_mode);
+        main_intf(B_FALSE);
+        logMsg(BP_INFO_LOG "Pushback interface changed to legacy magic "
+            "squares");
+    } else {
+        main_intf_hide();
+        interface_mode = new_mode;
+        ground_ops_ui_set_enabled(B_TRUE);
+        if (!ground_ops_ui_init()) {
+            ground_ops_ui_fini();
+            interface_mode = BP_INTERFACE_MODE_LEGACY_MAGIC_SQUARES;
+            ground_ops_ui_set_enabled(B_FALSE);
+            (void)conf_set_i(bp_conf, BP_INTERFACE_MODE_CONFIG_KEY,
+                interface_mode);
+            main_intf(B_FALSE);
+            enable_menu_items();
+            logMsg(BP_ERROR_LOG "Unable to enable Ground Operations; "
+                "restored the legacy magic-squares interface");
+            return (B_FALSE);
+        }
+        (void)conf_set_i(bp_conf, BP_INTERFACE_MODE_CONFIG_KEY,
+            interface_mode);
+        main_intf(B_FALSE);
+        logMsg(BP_INFO_LOG "Pushback interface changed to Ground "
+            "Operations");
+    }
+
+    enable_menu_items();
+    return (B_TRUE);
+}
+
+bool_t
+bp_set_interface_mode(bp_interface_mode_t requested_mode)
+{
+    bp_interface_mode_t new_mode = bp_interface_mode_normalize(
+        requested_mode);
+
+    if (bp_started || planner_open) {
+        logMsg(BP_WARN_LOG "Pushback interface cannot be changed during "
+            "an active operation or while the planner is open");
+        return (B_FALSE);
+    }
+
+    (void)conf_set_i(bp_conf, BP_INTERFACE_MODE_CONFIG_KEY, new_mode);
+    if (new_mode == interface_mode) {
+        interface_mode_change_rqst = B_FALSE;
+        return (B_TRUE);
+    }
+
+    requested_interface_mode = new_mode;
+    interface_mode_change_rqst = B_TRUE;
+    ASSERT(reload_floop_ID != NULL);
+    XPLMScheduleFlightLoop(reload_floop_ID, -1.0f, 1);
+    logMsg(BP_INFO_LOG "Queued pushback interface change for the next safe "
+        "simulator callback");
+    return (B_TRUE);
+}
+
+void
+bp_request_legacy_magic_squares_reposition(void)
+{
+    legacy_magic_squares_reposition_rqst = B_TRUE;
+    ASSERT(reload_floop_ID != NULL);
+    XPLMScheduleFlightLoop(reload_floop_ID, -1.0f, 1);
+}
+
+static int
+ground_ops_show_hide_handler(XPLMCommandRef cmd, XPLMCommandPhase phase,
+    void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+
+    if (phase == xplm_CommandEnd)
+        ground_ops_ui_toggle_visible();
+    return (1);
+}
+
+static int
+ground_ops_expand_collapse_handler(XPLMCommandRef cmd,
+    XPLMCommandPhase phase, void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+
+    if (phase == xplm_CommandEnd)
+        ground_ops_ui_toggle_expanded();
+    return (1);
+}
+
+static int
+start_pb_handler_(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+
+    if (phase != xplm_CommandEnd )
+        return (1);
+
+   if (tug_pending_mode) {
+        tug_pending_mode = B_FALSE;
+        return (1);
+    }
+    if (phase != xplm_CommandEnd || !bp_init())
+        return (1);
+
+    if (get_pref_widget_status()) // do nothing if preference widget is active
+        return (1);
+
+    if (!start_pb_enable)
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/start\" is currently disabled");
+        if (push_manual.requested) {
+            manual_bp_stop();
+        }
+        return (1);
+    }
+
+    if (push_manual.requested) {
+        manual_bp_start();
+    }
+ 
+
+    stop_cam_handler(NULL, xplm_CommandEnd, NULL); // synchronously stop a possible open cam
+
+    // if late_plan_requested always present plan for final review
+    if ((late_plan_requested || bp_num_segs() == 0) && !slave_mode)
+    {
+        if (!push_manual.active) {
+            if (!bp_cam_start())
+            return (1);
+            ground_ops_ui_suspend_for_planner();
+        }
+        prefs_enable = B_FALSE;
+        start_pb_plan_enable = B_FALSE;
+        stop_pb_plan_enable = B_TRUE;
+        start_pb_enable = B_FALSE;
+        conn_first_enable = B_FALSE;
+        stop_pb_enable = B_FALSE;
+        enable_menu_items();
+        start_after_cam = B_TRUE;
+        if (!push_manual.active) {
+            msg_play(MSG_PLAN_START);
+            return (1);
+        }
+    }
+    op_complete = B_FALSE;
+    late_plan_requested = B_FALSE;
+    if (!bp_start())
+        return (1);
+
+    prefs_enable = B_FALSE;
+    start_pb_plan_enable = B_FALSE;
+    stop_pb_plan_enable = B_FALSE;
+    start_pb_enable = B_FALSE;
+    conn_first_enable = B_FALSE;
+    stop_pb_enable = !slave_mode;
+    enable_menu_items();
+    return (1);
 }
 
 static int
 start_pb_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (phase != xplm_CommandEnd)
-		return (1);
+    if (phase != xplm_CommandEnd )
+    return (1);
 
-	XPLMCommandOnce(stop_cam);
-	if (!bp_init())
-		return (1);
-	if (bp_num_segs() == 0 && !slave_mode) {
-		if (!bp_cam_start())
-			return (1);
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-		msg_play(MSG_PLAN_START);
-		start_after_cam = B_TRUE;
-		return (1);
-	}
-	op_complete = B_FALSE;
-	late_plan_requested = B_FALSE;
-	if (!bp_start())
-		return (1);
+    bool_t always_connect_tug_first = B_FALSE;
+    (void)conf_get_b(bp_conf, "always_connect_tug_first", &always_connect_tug_first);
 
-	XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, stop_pb_menu_item, !slave_mode);
+    if ( ((tug_auto_start && tug_starts_next_plane) || always_connect_tug_first) && !bp_started)
+    {
+        return conn_first_handler(cmd, phase, refcon);
+    }
+    else
+    {
+        return start_pb_handler_(cmd, phase, refcon);
+    }
+}
 
-	return (1);
+static int
+manual_push_start_handler_(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon, bool_t with_yoke)
+{
+    if (phase != xplm_CommandEnd )
+        return (1);
+
+    if (!push_manual.active) {
+        manual_bp_request(with_yoke);
+        return start_pb_handler_(cmd, phase, refcon);
+    } else {
+        push_manual.pause = !push_manual.pause;
+        logMsg(BP_INFO_LOG "Manual push: Status %s", push_manual.pause ? "paused" : "pushing");
+        return (1);
+    }
+}
+
+static int
+manual_push_start_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    if (phase != xplm_CommandEnd )
+        return (1);
+    
+    return manual_push_start_handler_(cmd, phase, refcon, true);
+}
+
+static int
+manual_push_start_no_yoke_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    if (phase != xplm_CommandEnd )
+        return (1);
+    
+    return manual_push_start_handler_(cmd, phase, refcon, false);
 }
 
 static int
 stop_pb_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (slave_mode)
-		return (1);
-	if (phase != xplm_CommandEnd || !bp_init())
-		return (1);
+    UNUSED(cmd);
+    UNUSED(refcon);
 
-	(void) bp_stop();
-	op_complete = B_TRUE;
-	if (!slave_mode) {
-		/* Reset the menu back */
-		late_plan_requested = B_FALSE;
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-	}
-	return (1);
+    if (slave_mode || phase != xplm_CommandEnd || !bp_init())
+        return (1);
+
+    if (!stop_pb_enable)
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/stop\" is currently disabled");
+        return (1);
+    }
+
+    if (push_manual.active) {
+        manual_bp_stop();
+    }
+
+    (void)bp_stop();
+    op_complete = B_TRUE;
+    if (!slave_mode)
+    {
+        /* Reset the menu back */
+        late_plan_requested = B_FALSE;
+        start_pb_enable = B_TRUE;
+        conn_first_enable = B_TRUE;
+        prefs_enable = B_TRUE;
+        enable_menu_items();
+    }
+    return (1);
 }
+
+static int
+pause_pb_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+
+    if (phase != xplm_CommandEnd)
+        return (1);
+    if (bp_pause_is_requested()) {
+        if (!bp_request_resume())
+            logMsg(BP_WARN_LOG "Automatic push resume request rejected");
+    } else if (!bp_request_pause()) {
+        logMsg(BP_WARN_LOG "Automatic push pause request rejected in the "
+            "current controller state");
+    }
+    return (1);
+}
+
+static int
+manual_push_reverse_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+
+    if (push_manual.active)  {
+        if ((bp_ls.tug->pos.spd > 0.1) || (bp_ls.tug->pos.spd < -0.1)) {
+            logMsg(BP_INFO_LOG "Manual push:  in progress, tug is moving to fast toggling direction is not yet possibe");
+            return (1);
+        }
+        push_manual.forward_direction = !push_manual.forward_direction;
+        logMsg(BP_INFO_LOG "Manual push:  Toggling direction to %s", push_manual.forward_direction ? "forward" : "backward");
+    } else {
+        logMsg(BP_INFO_LOG "Manual push:  Not in progress, toggling direction is disabled");
+    }
+    return (1);
+}
+
 
 static int
 start_cam_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (slave_mode || late_plan_requested)
-		return (1);
-	if (phase != xplm_CommandEnd || !bp_init() || !bp_cam_start()) {
-		start_after_cam = B_FALSE;
-		return (1);
-	}
+    UNUSED(cmd);
+    UNUSED(refcon);
 
-	XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_TRUE);
-	XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-	return (1);
+    if (get_pref_widget_status()) // do nothing if preference widget is active
+        return (1);
+
+    if (slave_mode || late_plan_requested)
+        return (1);
+
+    if (phase != xplm_CommandEnd || !bp_init())
+        return (1);
+
+    if (!start_pb_plan_enable)
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/start_planner\" is currently disabled");
+        return (1);
+    }
+
+    if (!bp_cam_start())
+    {
+        start_after_cam = B_FALSE;
+        return (1);
+    }
+    ground_ops_ui_suspend_for_planner();
+
+    prefs_enable = B_FALSE;
+    start_pb_plan_enable = B_FALSE;
+    stop_pb_plan_enable = B_TRUE;
+    start_pb_enable = B_FALSE;
+    conn_first_enable = B_TRUE;
+    stop_pb_enable = B_FALSE;
+    enable_menu_items();
+    return (1);
 }
 
 static int
 stop_cam_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (slave_mode)
-		return (1);
-	if (phase != xplm_CommandEnd || !bp_init() || !bp_cam_stop())
-		return (1);
+    UNUSED(cmd);
+    UNUSED(refcon);
 
-	XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_TRUE);
-	XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_TRUE);
-	XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-	if (late_plan_requested) {
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item,
-		    bp_num_segs() == 0);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_TRUE);
-	} else if (start_after_cam) {
-		if (bp_num_segs() != 0)
-			XPLMCommandOnce(start_pb);
-	} else if (bp_can_start(NULL)) {
-		msg_play(MSG_PLAN_END);
-	}
+    if (slave_mode || phase != xplm_CommandEnd || !bp_init())
+        return (1);
 
-	start_after_cam = B_FALSE;
+    if (!stop_pb_plan_enable)
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/stop_planner\" is currently disabled");
+        return (1);
+    }
 
-	return (1);
+    if (!bp_cam_stop())
+        return (1);
+    ground_ops_ui_resume_after_planner();
+
+    prefs_enable = B_TRUE;
+    start_pb_plan_enable = B_TRUE;
+    stop_pb_plan_enable = B_FALSE;
+    start_pb_enable = B_TRUE;
+    conn_first_enable = B_TRUE;
+    stop_pb_enable = B_FALSE;
+    enable_menu_items();
+
+    if (late_plan_requested)
+    {
+        prefs_enable = B_FALSE;
+        start_pb_plan_enable = B_FALSE;
+        stop_pb_plan_enable = B_FALSE;
+        start_pb_enable = (bp_num_segs() == 0);
+        conn_first_enable = B_FALSE;
+        stop_pb_enable = B_TRUE;
+        enable_menu_items();
+    }
+    else if (start_after_cam)
+    {
+        if (bp_num_segs() != 0)
+            XPLMCommandOnce(start_pb);
+    }
+    else if (bp_can_start(NULL))
+    {
+        msg_play(MSG_PLAN_END);
+    }
+
+    start_after_cam = B_FALSE;
+
+    return (1);
+}
+
+static int
+connect_first_begin(bool_t emergency)
+{
+    bool_t completed_state = op_complete;
+
+    if (!bp_init() || bp_started || slave_mode)
+        return (0);
+    if (!conn_first_enable) {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/connect_first\" is "
+            "currently disabled");
+        return (0);
+    }
+    if (get_pref_widget_status())
+        return (1);
+    if (emergency) {
+        if (!op_complete) {
+            logMsg(BP_WARN_LOG "Emergency Tow rejected: the previous ground "
+                "operation is not complete");
+            return (0);
+        }
+        if (!emergency_tow_begin()) {
+            logMsg(BP_WARN_LOG "Emergency Tow rejected: a session is already "
+                "active");
+            return (0);
+        }
+        op_complete = B_FALSE;
+        logMsg(BP_INFO_LOG "Emergency Tow requested; persistent route access "
+            "and wing-walker rendering are disabled for this session");
+    }
+
+    bool_t keep_legacy_plan = bp_legacy_routes() && !emergency &&
+        !bp_cam_is_running() && bp_num_segs() != 0;
+    late_plan_requested = B_TRUE;
+    (void)bp_cam_stop();
+
+    /* Retain a completed legacy pre-plan when its route policy is enabled. */
+    if (!keep_legacy_plan && bp_num_segs())
+        bp_delete_all_segs();
+
+    if (!bp_start()) {
+        late_plan_requested = B_FALSE;
+        if (emergency) {
+            (void)emergency_tow_finish();
+            op_complete = completed_state;
+            logMsg(BP_WARN_LOG "Emergency Tow dispatch failed; restored the "
+                "completed-operation state");
+        }
+        return (1);
+    }
+
+    start_pb_plan_enable = B_FALSE;
+    stop_pb_plan_enable = B_FALSE;
+    start_pb_enable = (bp_num_segs() == 0);
+    stop_pb_enable = B_TRUE;
+    conn_first_enable = B_FALSE;
+    prefs_enable = B_FALSE;
+    enable_menu_items();
+    return (1);
 }
 
 static int
 conn_first_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (phase != xplm_CommandEnd || !bp_init() || bp_started || slave_mode)
-		return (0);
-	late_plan_requested = B_TRUE;
-	(void) bp_cam_stop();
-	if (!bp_start())
-		return (1);
+    UNUSED(cmd);
+    UNUSED(refcon);
 
-	if (!slave_mode) {
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item,
-		    bp_num_segs() == 0);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_TRUE);
-	}
-	return (1);
+    if (phase != xplm_CommandEnd)
+        return (1);
+    return (connect_first_begin(B_FALSE));
+}
+
+static int
+emergency_tow_handler(XPLMCommandRef cmd, XPLMCommandPhase phase,
+    void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+
+    if (phase != xplm_CommandEnd)
+        return (1);
+    return (connect_first_begin(B_TRUE));
 }
 
 static int
 cab_cam_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (phase != xplm_CommandEnd)
-		return (0);
-	if (!cab_view_start()) {
-		XPLMSpeakString(_("Unable to select pushback tug view at "
-		    "this time."));
-		return (0);
-	}
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
 
-	return (1);
+    if (!cab_cam_enable)
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/cab_cam\" is currently disabled");
+        return (0);
+    }
+
+    if (!cab_view_start())
+    {
+        XPLMSpeakString(_("ERROR: Unable to select pushback tug view at this time."));
+        return (0);
+    }
+
+    tug_view_callback_is_alive = B_TRUE;
+    return (1);
 }
 
 static int
-recreate_routes_handler(XPLMCommandRef cmd, XPLMCommandPhase phase,
-    void *refcon)
+recreate_routes_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
 {
-	UNUSED(cmd);
-	UNUSED(refcon);
-	if (phase != xplm_CommandEnd)
-		return (0);
-	xlate_wedroutes();
-	return (1);
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+    xlate_wedroutes();
+    return (1);
+}
+
+static int
+preference_window_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+
+    if (!prefs_enable)
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/preference\" is currently disabled");
+        return (0);
+    }
+
+    bp_conf_open();
+    return (1);
+}
+
+static int
+reload_handler(XPLMCommandRef cmd, XPLMCommandPhase phase, void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+
+    if (bp_started || planner_open || get_pref_widget_status())
+    {
+        logMsg(BP_WARN_LOG "Command \"ProgressiveTaxi/reload\" is currently disabled");
+        return (0);
+    }
+
+    bp_sched_reload();
+    return (1);
 }
 
 static void
 menu_cb(void *inMenuRef, void *inItemRef)
 {
-	UNUSED(inMenuRef);
-	if (inItemRef == NULL)
-		return;
-	else if (inItemRef == &prefs_menu_item)
-		bp_conf_open();
-	else
-		XPLMCommandOnce((XPLMCommandRef)inItemRef);
+    UNUSED(inMenuRef);
+    if (inItemRef == NULL)
+        return;
+    else
+        XPLMCommandOnce((XPLMCommandRef)inItemRef);
 }
 
-void
-bp_done_notify(void)
+void bp_done_notify(void)
 {
-	if (!slave_mode) {
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-	}
+    if (!slave_mode)
+    {
+        prefs_enable = B_TRUE;
+        start_pb_enable = B_TRUE;
+        conn_first_enable = B_TRUE;
+        stop_pb_enable = B_FALSE;
+        start_pb_plan_enable = B_TRUE;
+        stop_pb_plan_enable = B_FALSE;
+        enable_menu_items();
+    }
 
-#ifndef	SLAVE_DEBUG
-	bp_tug_name[0] = '\0';
+#ifndef SLAVE_DEBUG
+    bp_tug_name[0] = '\0';
 #endif
 }
 
@@ -477,239 +975,430 @@ bp_done_notify(void)
  * appropriate time. Behave as if the user had hit "connect first" and on
  * the master's machine invoke the planner.
  */
-void
-bp_reconnect_notify(void)
+void bp_reconnect_notify(void)
 {
-	if (slave_mode)
-		return;
+    if (slave_mode)
+        return;
 
-	late_plan_requested = B_TRUE;
-	VERIFY(bp_cam_start());
-	msg_play(MSG_PLAN_START);
-	XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_TRUE);
-	XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_TRUE);
+    late_plan_requested = B_TRUE;
+    VERIFY(bp_cam_start());
+    ground_ops_ui_suspend_for_planner();
+    msg_play(MSG_PLAN_START);
+    start_pb_plan_enable = B_FALSE;
+    stop_pb_plan_enable = B_TRUE;
+    start_pb_enable = B_FALSE;
+    conn_first_enable = B_TRUE;
+    stop_pb_enable = B_TRUE;
+    enable_menu_items();
+}
+
+void
+bp_emergency_tow_planner_notify(void)
+{
+    if (slave_mode || !emergency_tow_claim_planner_launch())
+        return;
+    if (!bp_cam_start()) {
+        logMsg(BP_WARN_LOG "Emergency Tow could not open the planner "
+            "automatically; the Plan tow action remains available");
+        return;
+    }
+    ground_ops_ui_suspend_for_planner();
+    msg_play(MSG_PLAN_START);
+    prefs_enable = B_FALSE;
+    start_pb_plan_enable = B_FALSE;
+    stop_pb_plan_enable = B_TRUE;
+    start_pb_enable = B_FALSE;
+    conn_first_enable = B_FALSE;
+    stop_pb_enable = B_TRUE;
+    enable_menu_items();
+    logMsg(BP_INFO_LOG "Emergency Tow tug connected; opened the one-time "
+        "manual planner automatically");
+}
+
+void
+bp_emergency_tow_session_end_notify(bool_t completed)
+{
+    if (!emergency_tow_finish())
+        return;
+    start_after_cam = B_FALSE;
+    plan_complete = B_FALSE;
+    planner_open = B_FALSE;
+    op_complete = completed ? B_FALSE : B_TRUE;
+    if (completed) {
+        logMsg(BP_INFO_LOG "Emergency Tow complete; restored the normal "
+            "cold-start Ground Operations state");
+    } else {
+        logMsg(BP_INFO_LOG "Emergency Tow ended before final tug departure; "
+            "restored the previous completed-operation state");
+    }
 }
 
 const char *
 bp_get_lang(void)
 {
-	const char *c;
-	if (conf_get_str(bp_conf, "lang", &c))
-		return (c);
-	return (acfutils_xplang2code(XPLMGetLanguage()));
+    const char *c;
+    if (conf_get_str(bp_conf, "lang", &c))
+        return (c);
+    return (acfutils_xplang2code(XPLMGetLanguage()));
 }
 
-void
-slave_mode_cb(dr_t *dr, void *unused)
+static void
+coupled_state_change()
 {
-	UNUSED(unused);
-	UNUSED(dr);
-	VERIFY(!bp_started);
+    /* If we were in slave mode, reenable the menu items. */
+    start_pb_enable = slave_mode ? 1 : 0;
+    conn_first_enable = start_pb_enable;
+    start_pb_plan_enable = start_pb_enable;
 
-	if (slave_mode) {
-		bp_fini();
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-	} else {
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-	}
+    stop_pb_enable = B_FALSE;
+    stop_pb_plan_enable = B_FALSE;
+    enable_menu_items();
+}
+
+void slave_mode_cb(dr_t *dr, void *unused)
+{
+    UNUSED(unused);
+    UNUSED(dr);
+    VERIFY(!bp_started);
+
+    if (slave_mode)
+        bp_fini();
+
+    coupled_state_change();
+}
+
+void pb_set_remote_cb(dr_t *dr, void *unused)
+{
+    UNUSED(unused);
+    UNUSED(dr);
+}
+
+void pb_set_override_cb(dr_t *dr, void *unused)
+{
+    UNUSED(unused);
+    UNUSED(dr);
 }
 
 static float
 status_check(float elapsed, float elapsed2, int counter, void *refcon)
 {
-	UNUSED(elapsed);
-	UNUSED(elapsed2);
-	UNUSED(counter);
-	UNUSED(refcon);
+    UNUSED(elapsed);
+    UNUSED(elapsed2);
+    UNUSED(counter);
+    UNUSED(refcon);
 
-	XPLMEnableMenuItem(root_menu, cab_cam_menu_item, cab_view_can_start());
+    cab_cam_enable = cab_view_can_start();
+    enable_menu_items();
 
-	if (!smartcopilot_present)
-		return (1);
+    if (!tug_view_callback_is_alive && tug_cam_started)
+    {
+        cab_view_stop();
+    }
+    tug_view_callback_is_alive = B_FALSE;
 
-	if (dr_geti(&smartcopilot_state) == SMARTCOPILOT_STATE_SLAVE &&
-	    !slave_mode) {
-		if (bp_started) {
-			XPLMSpeakString(_("Pushback failure: smartcopilot "
-			    "attempted to switch master/slave or network "
-			    "connection lost. Stopping operation."));
-		}
-		/*
-		 * If we were in master mode, stop the camera, flush out all
-		 * pushback segments and inhibit all menu items. The master
-		 * will control us.
-		 */
-		bp_fini();
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-		slave_mode = B_TRUE;
-	} else if (dr_geti(&smartcopilot_state) != SMARTCOPILOT_STATE_SLAVE &&
-	    slave_mode) {
-		if (bp_started) {
-			XPLMSpeakString(_("Pushback failure: smartcopilot "
-			    "attempted to switch master/slave or network "
-			    "connection lost. Stopping operation."));
-		}
-		/* If we were in slave mode, reenable the menu items. */
-		bp_fini();
-		XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-		XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_TRUE);
-		XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-		slave_mode = B_FALSE;
-	}
+    if ((!setup_view_callback_is_alive) && (get_pref_widget_status()))
+    {
+        set_pref_widget_status(B_FALSE);
+    }
+    setup_view_callback_is_alive = B_FALSE;
 
-	return (STATUS_CHECK_INTVAL);
+    if (bp_plan_callback_is_alive > 0)
+    {
+        bp_plan_callback_is_alive--;
+    }
+
+    int hide_magic_squares_global = HIDE_M_SQUARE_USE_ACF_SETTING;
+    (void)conf_get_i( bp_conf,"hide_magic_squares_global", &hide_magic_squares_global);
+
+    if (hide_magic_squares_global == HIDE_M_SQUARE_USE_ACF_SETTING) {
+        if (!conf_get_b_per_acf("hide_magic_squares", &hide_main_intf))
+        {
+            hide_main_intf = B_FALSE;
+        }
+    } else {
+            hide_main_intf =  (hide_magic_squares_global == HIDE_M_SQUARE_YES) ? B_TRUE : B_FALSE;
+    }
+
+    main_intf(hide_main_intf);
+
+    // Status check only needed if we have a known system of coupling installed...
+    if (!smartcopilot_present && !sharedflight_present)
+        return (1);
+
+    if (smartcopilot_present && dr_geti(&smartcopilot_state) == COUPLED_STATE_SLAVE &&
+        !slave_mode)
+    {
+        if (bp_started)
+        {
+            XPLMSpeakString(_("Pushback failure: smartcopilot "
+                              "attempted to switch master/slave or network "
+                              "connection lost. Stopping operation."));
+        }
+        /*
+         * If we were in master mode, stop the camera, flush out all
+         * pushback segments and inhibit all menu items. The master
+         * will control us.
+         */
+        bp_fini();
+        slave_mode = B_TRUE;
+        coupled_state_change();
+    }
+    else if (sharedflight_present && dr_geti(&sharedflight_state) == COUPLED_STATE_SLAVE &&
+             !slave_mode)
+    {
+        if (bp_started)
+        {
+            XPLMSpeakString(_("Pushback failure: Shared Flight "
+                              "attempted to switch pilot flying or network "
+                              "connection lost. Stopping operation."));
+        }
+        bp_fini();
+        slave_mode = B_TRUE;
+        coupled_state_change();
+    }
+    else if ((smartcopilot_present && dr_geti(&smartcopilot_state) != COUPLED_STATE_SLAVE) &&
+             (!sharedflight_present || dr_geti(&sharedflight_state) != COUPLED_STATE_SLAVE) &&
+             slave_mode)
+    {
+        if (bp_started)
+        {
+            XPLMSpeakString(_("Pushback failure: smartcopilot "
+                              "attempted to switch master/slave or network "
+                              "connection lost. Stopping operation."));
+        }
+        bp_fini();
+        slave_mode = B_FALSE;
+        coupled_state_change();
+    }
+    else if ((sharedflight_present && dr_geti(&sharedflight_state) != COUPLED_STATE_SLAVE && dr_geti(&sharedflight_state) != COUPLED_STATE_PASSENGER) &&
+             (!smartcopilot_present || dr_geti(&smartcopilot_state) != COUPLED_STATE_SLAVE) &&
+             slave_mode)
+    {
+        if (bp_started)
+        {
+            XPLMSpeakString(_("Pushback failure: Shared Flight "
+                              "attempted to switch pilot flying or network "
+                              "connection lost. Stopping operation."));
+        }
+        bp_fini();
+        slave_mode = B_FALSE;
+        coupled_state_change();
+    }
+
+    return (STATUS_CHECK_INTVAL);
 }
 
 static void
 xlate_init(void)
 {
-	char *po_file = mkpathname(xpdir, plugindir, "data", "po",
-	    bp_get_lang(), "strings.po", NULL);
-	(void) acfutils_xlate_init(po_file);
-	free(po_file);
+    char *po_file = mkpathname(xpdir, plugindir, "data", "po",
+                               bp_get_lang(), "strings.po", NULL);
+    (void)acfutils_xlate_init(po_file);
+    free(po_file);
 }
 
 PLUGIN_API int
 XPluginStart(char *name, char *sig, char *desc)
 {
-	char *p;
-	GLenum err;
+    char *p;
+    GLenum err;
 
-	log_init(XPLMDebugString, "ProgressiveTaxi");
-	logMsg("This is ProgressiveTaxi-" BP_PLUGIN_VERSION
-	    " libacfutils-%s", libacfutils_version);
+    log_init(XPLMDebugString, "ProgressiveTaxi");
+    logMsg(BP_INFO_LOG "This is ProgressiveTaxi-" BP_PLUGIN_VERSION " libacfutils-%s (based on BetterPushbackMod) - for X-Plane 11/12",
+           libacfutils_version);
 
-	crc64_init();
-	crc64_srand(microclock());
+    crc64_init();
+    crc64_srand(microclock());
 
-	err = glewInit();
-	if (err != GLEW_OK) {
-		/* Problem: glewInit failed, something is seriously wrong. */
-		logMsg("FATAL ERROR: cannot initialize libGLEW: %s",
-		    glewGetErrorString(err));
-		return (0);
-	}
+    err = glewInit();
+    if (err != GLEW_OK)
+    {
+        /* Problem: glewInit failed, something is seriously wrong. */
+        logMsg(BP_FATAL_LOG "cannot initialize libGLEW: %s", glewGetErrorString(err));
+        return (0);
+    }
 
-	/* Always use Unix-native paths on the Mac! */
-	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+    /* Always use Unix-native paths on the Mac! */
+    XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
-	XPLMGetSystemPath(xpdir);
-	XPLMGetPluginInfo(XPLMGetMyID(), NULL, plugindir, NULL, NULL);
+    XPLMGetSystemPath(xpdir);
+    XPLMGetPluginInfo(XPLMGetMyID(), NULL, plugindir, NULL, NULL);
 
-#if	IBM
-	fix_pathsep(xpdir);
-	fix_pathsep(plugindir);
-#endif	/* IBM */
+#if IBM
+    fix_pathsep(xpdir);
+    fix_pathsep(plugindir);
+#endif /* IBM */
 
-	/* cut off the trailing path component (our filename) */
-	if ((p = strrchr(plugindir, DIRSEP)) != NULL)
-		*p = '\0';
-	/* cut off an optional '32' or '64' trailing component */
-	if ((p = strrchr(plugindir, DIRSEP)) != NULL) {
-		if (strcmp(p + 1, "64") == 0 || strcmp(p + 1, "32") == 0 ||
-		    strcmp(p + 1, "win_x64") == 0 ||
-		    strcmp(p + 1, "mac_x64") == 0 ||
-		    strcmp(p + 1, "lin_x64") == 0) {
-			*p = '\0';
-		}
-	}
+    /* cut off the trailing path component (our filename) */
+    if ((p = strrchr(plugindir, DIRSEP)) != NULL)
+        *p = '\0';
+    /* cut off an optional '32' or '64' trailing component */
+    if ((p = strrchr(plugindir, DIRSEP)) != NULL)
+    {
+        if (strcmp(p + 1, "64") == 0 || strcmp(p + 1, "32") == 0 ||
+            strcmp(p + 1, "win_x64") == 0 ||
+            strcmp(p + 1, "mac_x64") == 0 ||
+            strcmp(p + 1, "lin_x64") == 0)
+        {
+            *p = '\0';
+        }
+    }
 
-	/*
-	 * Now we strip a leading xpdir from plugindir, so that now plugindir
-	 * will be relative to X-Plane's root directory.
-	 */
-	if (strstr(plugindir, xpdir) == plugindir) {
-		int xpdir_len = strlen(xpdir);
-		int plugindir_len = strlen(plugindir);
-		memmove(plugindir, &plugindir[xpdir_len],
-		    plugindir_len - xpdir_len + 1);
-	}
+    /*
+     * Now we strip a leading xpdir from plugindir, so that now plugindir
+     * will be relative to X-Plane's root directory.
+     */
+    if (strstr(plugindir, xpdir) == plugindir)
+    {
+        int xpdir_len = strlen(xpdir);
+        int plugindir_len = strlen(plugindir);
+        memmove(plugindir, &plugindir[xpdir_len],
+                plugindir_len - xpdir_len + 1);
+    }
 
-	strcpy(name, BP_PLUGIN_NAME);
-	strcpy(sig, BP_PLUGIN_SIG);
-	strcpy(desc, BP_PLUGIN_DESCRIPTION);
+    strcpy(name, BP_PLUGIN_NAME);
+    strcpy(sig, BP_PLUGIN_SIG);
+    strcpy(desc, BP_PLUGIN_DESCRIPTION);
 
-	dcr_init();
+    dcr_init();
 
-	/* We need the configuration very early to be able to pick the lang */
-	if (!bp_conf_init())
-		return (0);
+    /* We need the configuration very early to be able to pick the lang */
+    if (!bp_conf_init())
+        return (0);
 
-	/* We need the i18n support really early, so init early */
-	xlate_init();
+    /* We need the i18n support really early, so init early */
+    xlate_init();
 
-	/* We can't delete commands, so put their creation here */
-	start_pb = XPLMCreateCommand("ProgressiveTaxi/start",
-	    _("Start pushback"));
-	stop_pb = XPLMCreateCommand("ProgressiveTaxi/stop",
-	    _("Stop pushback"));
-	start_cam = XPLMCreateCommand("ProgressiveTaxi/start_planner",
-	    _("Start pushback planner"));
-	stop_cam = XPLMCreateCommand("ProgressiveTaxi/stop_planner",
-	    _("Stop pushback planner"));
-	conn_first = XPLMCreateCommand("ProgressiveTaxi/connect_first",
-	    _("Connect tug before entering pushback plan"));
-	cab_cam = XPLMCreateCommand("ProgressiveTaxi/cab_camera",
-	    _("View from tug's cab."));
-	recreate_routes = XPLMCreateCommand(
-	    "ProgressiveTaxi/recreate_scenery_routes",
-	    _("Recreate scenery routes from WED files."));
-	ptx_xp_start();
+    /* We can't delete commands, so put their creation here */
+    start_pb = XPLMCreateCommand("ProgressiveTaxi/start",
+                                 _("Start pushback"));
+    stop_pb = XPLMCreateCommand("ProgressiveTaxi/stop",
+                                _("End pushback and disconnect"));
+    pause_pb = XPLMCreateCommand("ProgressiveTaxi/pause_resume",
+                                 _("Pause or resume automatic pushback"));
+    start_cam = XPLMCreateCommand("ProgressiveTaxi/start_planner",
+                                  _("Start pushback planner"));
+    stop_cam = XPLMCreateCommand("ProgressiveTaxi/stop_planner",
+                                 _("Stop pushback planner"));
+    conn_first = XPLMCreateCommand("ProgressiveTaxi/connect_first",
+                                   _("Connect tug before entering pushback plan"));
+    call_emergency_tow = XPLMCreateCommand(
+        "ProgressiveTaxi/call_emergency_tow",
+        _("Call tug for a one-time emergency tow"));
+    cab_cam = XPLMCreateCommand("ProgressiveTaxi/cab_camera",
+                                _("View from tug's cab."));
+    recreate_routes = XPLMCreateCommand(
+        "ProgressiveTaxi/recreate_scenery_routes",
+        _("Recreate scenery routes from WED files."));
+    ptx_xp_start();
+    pref_cmd = XPLMCreateCommand(
+        "ProgressiveTaxi/preference",
+        _("Open preference window."));
+    reload_cmd = XPLMCreateCommand(
+        "ProgressiveTaxi/reload",
+        _("Reload Progressive Taxi"));
+    ground_ops_show_hide = XPLMCreateCommand(
+        "ProgressiveTaxi/ground_ops_show_hide",
+        _("Show or hide the Ground Operations interface"));
+    ground_ops_expand_collapse = XPLMCreateCommand(
+        "ProgressiveTaxi/ground_ops_expand_collapse",
+        _("Expand or collapse the Ground Operations interface"));
 
-	bp_boot_init();
+    abort_push = XPLMCreateCommand("ProgressiveTaxi/abort_push",
+                                   _("Abort pushback during coupled push"));
 
-	dr_create_i(&bp_started_dr, (int *)&bp_started, B_FALSE,
-	    "ptaxi/started");
-	dr_create_i(&bp_connected_dr, (int *)&bp_connected, B_FALSE,
-	    "ptaxi/connected");
-	dr_create_i(&slave_mode_dr, (int *)&slave_mode, B_TRUE,
-	    "ptaxi/slave_mode");
-	slave_mode_dr.write_cb = slave_mode_cb;
-	dr_create_i(&op_complete_dr, (int *)&op_complete, B_TRUE,
-	    "ptaxi/op_complete");
-	dr_create_i(&plan_complete_dr, (int *)&plan_complete, B_TRUE,
-	    "ptaxi/plan_complete");
-	dr_create_b(&bp_tug_name_dr, bp_tug_name, sizeof (bp_tug_name),
-	    B_TRUE, "ptaxi/tug_name");
+    manual_push_left = XPLMCreateCommand("ProgressiveTaxi/manual_push_left",
+    _("Turn the tug to the left"));
+    manual_push_right = XPLMCreateCommand("ProgressiveTaxi/manual_push_right",
+        _("Turn the tug to the right"));
+    manual_push_reverse = XPLMCreateCommand("ProgressiveTaxi/manual_push_toggle",
+        _("Toggle the trajectory of the push back"));
+    manual_push_start = XPLMCreateCommand("ProgressiveTaxi/manual_push_start",
+        _("Start/Pause the manual push back with yoke"));
+    manual_push_start_no_yoke = XPLMCreateCommand("ProgressiveTaxi/manual_push_start_no_yoke",
+        _("Start/Pause the manual push back (yoke not used)"));    
+        
+    bp_boot_init();
 
-	XPLMGetVersions(&bp_xp_ver, &bp_xplm_ver, &bp_host_id);
+    dr_create_i(&bp_started_dr, (int *)&bp_started, B_FALSE,
+                "ptaxi/started");
+    dr_create_i(&bp_connected_dr, (int *)&bp_connected, B_FALSE,
+                "ptaxi/connected");
+    
 
-	reload_floop_ID = XPLMCreateFlightLoop(&reload_floop);
+    bp_ground_crew_audio_volume = 1.0f;
+    (void)conf_get_f(bp_conf, "ground_crew_audio_volume", &bp_ground_crew_audio_volume);            
+    dr_create_f(&bp_groud_crew_audio_volume_dr, (float *)&bp_ground_crew_audio_volume, B_TRUE,
+                "ptaxi/ground_crew_audio_volume");
+    /*
+     * X-Plane requires every custom dataref referenced by an instanced OBJ
+     * to exist before the object is loaded. The instance supplies its own
+     * per-worker value; this backing value only registers the dataref.
+     */
+    dr_create_f(&wing_walker_signal_dr, &wing_walker_signal_value, B_FALSE,
+                WING_WALKER_SIGNAL_DATAREF);
 
-	return (1);
+    slave_mode_dr_cfg.write_cb = slave_mode_cb;    
+    slave_mode_dr_cfg.writable = B_TRUE;    
+    dr_create_i_cfg(&slave_mode_dr, (int *)&slave_mode, slave_mode_dr_cfg,
+                "ptaxi/slave_mode");
+    //slave_mode_dr.write_cb = slave_mode_cb;
+    dr_create_i(&op_complete_dr, (int *)&op_complete, B_TRUE,
+                "ptaxi/op_complete");
+    dr_create_i(&plan_complete_dr, (int *)&plan_complete, B_TRUE,
+                "ptaxi/plan_complete"); /* BP_DATAREF plan_complete */
+    dr_create_i(&planner_open_dr, (int *)&planner_open, B_FALSE,
+                "ptaxi/planner_open"); /* BP_DATAREF planner_open */
+    dr_create_b(&bp_tug_name_dr, bp_tug_name, sizeof(bp_tug_name),
+                B_TRUE, "ptaxi/tug_name");
+
+    pb_set_remote_dr_cfg.write_cb = pb_set_remote_cb;    
+    pb_set_remote_dr_cfg.writable = B_FALSE;    
+    dr_create_i_cfg(&pb_set_remote_dr, (int *)&pb_set_remote, pb_set_remote_dr_cfg,
+                "ptaxi/parking_brake_set");
+ //   pb_set_remote_dr.write_cb = pb_set_remote_cb;
+
+    pb_set_override_dr_cfg.write_cb = pb_set_override_cb;    
+    pb_set_override_dr_cfg.writable = B_FALSE;    
+    dr_create_i_cfg(&pb_set_override_dr, (int *)&pb_set_override, pb_set_override_dr_cfg,
+                "ptaxi/parking_brake_override");
+//    pb_set_override_dr.write_cb = pb_set_override_cb;
+
+    XPLMGetVersions(&bp_xp_ver, &bp_xplm_ver, &bp_host_id);
+
+    reload_floop_ID = XPLMCreateFlightLoop(&reload_floop);
+
+    return (1);
 }
 
 PLUGIN_API void
 XPluginStop(void)
 {
-	bp_conf_fini();
-	acfutils_xlate_fini();
-	tug_glob_fini();
-	bp_shut_fini();
-	bp_alias_drs_fini();
-	dr_delete(&bp_started_dr);
-	dr_delete(&bp_connected_dr);
-	dr_delete(&slave_mode_dr);
-	dr_delete(&op_complete_dr);
-	dr_delete(&bp_tug_name_dr);
-	dcr_fini();
+    ground_ops_ui_fini();
+    cfg_cleanup();
+    bp_conf_fini();
+    acfutils_xlate_fini();
+    tug_glob_fini();
+    bp_shut_fini();
+    bp_alias_drs_fini();
+    dr_delete(&bp_started_dr);
+    dr_delete(&bp_connected_dr);
+    dr_delete(&slave_mode_dr);
+    dr_delete(&op_complete_dr);
+    dr_delete(&plan_complete_dr); /* BP_DATAREF plan_complete */
+    dr_delete(&planner_open_dr);  /* BP_DATAREF planner_open */
+    dr_delete(&bp_tug_name_dr);
+    dr_delete(&pb_set_remote_dr);
+    dr_delete(&pb_set_override_dr);
+    dr_delete(&wing_walker_signal_dr);
+    dcr_fini();
 
-	if (reload_floop_ID != NULL) {
-		XPLMDestroyFlightLoop(reload_floop_ID);
-		reload_floop_ID = NULL;
-	}
+    if (reload_floop_ID != NULL)
+    {
+        XPLMDestroyFlightLoop(reload_floop_ID);
+        reload_floop_ID = NULL;
+    }
+    logMsg(BP_INFO_LOG "Unloading ProgressiveTaxi");
 }
 
 /*
@@ -722,215 +1411,458 @@ XPluginStop(void)
 PLUGIN_API int
 XPluginEnable(void)
 {
-	/*
-	 * Done here rather than in XPluginStart: by the time X-Plane enables
-	 * plugins, every global plugin has started, so the original
-	 * BetterPushback (if installed) is findable. Aircraft plugins load
-	 * later, with the aircraft, and so see our datarefs.
-	 */
-	bp_alias_drs_init();
-	return (bp_priv_enable());
+    /*
+     * Done here rather than in XPluginStart: by the time X-Plane enables
+     * plugins, every global plugin has started, so the original
+     * BetterPushback (if installed) is findable. Aircraft plugins load
+     * later, with the aircraft, and so see our datarefs.
+     */
+    bp_alias_drs_init();
+    return (bp_priv_enable());
 }
 
 PLUGIN_API void
 XPluginDisable(void)
 {
-	bp_priv_disable();
-	bp_alias_drs_fini();
+    bp_priv_disable();
+    bp_alias_drs_fini();
 }
 
 PLUGIN_API void
 XPluginReceiveMessage(XPLMPluginID from, int msg, void *param)
 {
-	UNUSED(from);
-	UNUSED(param);
+    UNUSED(from);
+    UNUSED(param);
 
-	switch (msg) {
-	case XPLM_MSG_AIRPORT_LOADED:
-	case XPLM_MSG_PLANE_LOADED:
-		/* Force a reinit to re-read aircraft size params */
-		smartcopilot_present = dr_find(&smartcopilot_state,
-		    "scp/api/ismaster");
-		/*
-		 * Only stop the planner camera if it is actually running.
-		 * stop_cam_handler() calls bp_init() first, and right after a
-		 * load the per-gear on-ground data isn't ready yet, so
-		 * bp_init() would speak "aircraft appears to not have any
-		 * steerable gears" on every aircraft/airport load.
-		 */
-		if (bp_cam_is_running())
-			stop_cam_handler(NULL, xplm_CommandEnd, NULL);
-		bp_fini();
-		cab_view_fini();
-#ifndef	SLAVE_DEBUG
-		bp_tug_name[0] = '\0';
+    switch (msg)
+    {
+    case XPLM_MSG_AIRPORT_LOADED:
+    case XPLM_MSG_PLANE_LOADED:
+        bp_nosewheel_status_invalidate(BP_NW_AIRCRAFT_RESET);
+        /* Force a reinit to re-read aircraft size params */
+        smartcopilot_present = dr_find(&smartcopilot_state, "scp/api/ismaster");
+        /*
+         * Only stop the planner camera if it is actually running.
+         * stop_cam_handler() calls bp_init() first, and right after a
+         * load the per-gear on-ground data isn't ready yet, so
+         * bp_init() would speak "aircraft appears to not have any
+         * steerable gears" on every aircraft/airport load.
+         */
+        if (bp_cam_is_running())
+            stop_cam_handler(NULL, xplm_CommandEnd, NULL);
+        sharedflight_present = dr_find(&sharedflight_state,
+                                       "SharedFlight/is_pilot_flying");
+        bp_fini();
+        cab_view_fini();
+#ifndef SLAVE_DEBUG
+        bp_tug_name[0] = '\0';
 #endif
-		init_core_state();
-		break;
-	}
+        init_core_state();
+        break;
+    }
 
-	/*
-	 * The FlightFactor A320 looks up these value objects by their
-	 * original BetterPushback names, so we keep those names. If the
-	 * original BetterPushback is also installed, let it own them.
-	 */
-	if (msg == XPLM_MSG_PLANE_LOADED &&
-	    XPLMFindPluginBySignature(ORIG_BP_PLUGIN_SIG) == XPLM_NO_PLUGIN_ID)
-		(void) ff_a320_intf_init();
-	else if (msg == XPLM_MSG_PLANE_UNLOADED)
-		ff_a320_intf_fini();
+    /*
+     * The FlightFactor A320 looks up these value objects by their
+     * original BetterPushback names, so we keep those names. If the
+     * original BetterPushback is also installed, let it own them.
+     */
+    if (msg == XPLM_MSG_PLANE_LOADED &&
+        XPLMFindPluginBySignature(ORIG_BP_PLUGIN_SIG) == XPLM_NO_PLUGIN_ID)
+        (void)ff_a320_intf_init();
+    else if (msg == XPLM_MSG_PLANE_UNLOADED) {
+        bp_nosewheel_status_invalidate(BP_NW_AIRCRAFT_RESET);
+        ff_a320_intf_fini();
+    }
 }
 
 static bool_t
 bp_priv_enable(void)
 {
-	char *cachedir = mkpathname(xpdir, "Output", "caches",
-	    "ProgressiveTaxiAirports.cache", NULL);
-	bool_t dont_hide_xp_tug = B_FALSE;
+    char *cachedir = mkpathname(xpdir, "Output", "caches",
+                                "ProgressiveTaxiAirports.cache", NULL);
+    airport_cache_manifest_t scenery_before = {0}, scenery_after = {0};
+    bool have_scenery_manifest;
+    bool_t dont_hide_xp_tug = B_FALSE;
+    int saved_interface_mode = BP_INTERFACE_MODE_GROUND_OPS;
 
-	ASSERT(!inited);
+    ASSERT(!inited);
+    XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
+    /*
+     * Reinit translations & config to allow switching languages on
+     * the fly.
+     */
+    acfutils_xlate_fini();
+    xlate_init();
+    bp_conf_fini();
+    if (!bp_conf_init()) {
+        bp_nosewheel_status_invalidate(BP_NW_INITIALIZATION_FAILED);
+        return (0);
+    }
+    (void)conf_get_i(bp_conf, BP_INTERFACE_MODE_CONFIG_KEY,
+        &saved_interface_mode);
+    interface_mode = bp_interface_mode_normalize(saved_interface_mode);
+    ground_ops_ui_set_enabled(bp_interface_mode_uses_ground_ops(
+        interface_mode) ? B_TRUE : B_FALSE);
+    init_core_state();
 
-	/*
-	 * Reinit translations & config to allow switching languages on
-	 * the fly.
-	 */
-	acfutils_xlate_fini();
-	xlate_init();
-	bp_conf_fini();
-	if (!bp_conf_init())
-		return (0);
-	init_core_state();
+    have_scenery_manifest = airport_cache_manifest_compute(bp_xpdir,
+        &scenery_before);
+    if (!have_scenery_manifest) {
+        logMsg(BP_WARN_LOG "Unable to inspect installed scenery inputs; "
+            "falling back to the airport database's path-only cache check");
+    } else if (!airport_cache_manifest_matches(cachedir,
+        &scenery_before)) {
+        /*logMsg(BP_INFO_LOG "Installed airport scenery changed; rebuilding "
+            "the ProgressiveTaxi airport cache (%llu inputs)",
+            (unsigned long long)scenery_before.input_count);*/
+        if (!airport_cache_manifest_invalidate(cachedir)) {
+            logMsg(BP_ERROR_LOG "Unable to invalidate the stale "
+                "ProgressiveTaxi airport cache");
+            goto errout;
+        }
+    }
 
-	airportdb = safe_calloc(1, sizeof (*airportdb));
-	airportdb_create(airportdb, bp_xpdir, cachedir);
+    airportdb = safe_calloc(1, sizeof(*airportdb));
+    airportdb_create(airportdb, bp_xpdir, cachedir);
 
-	if (!recreate_cache(airportdb) || !tug_glob_init())
-		goto errout;
+    if (!recreate_cache(airportdb))
+        goto errout;
+    if (have_scenery_manifest) {
+        if (!airport_cache_manifest_compute(bp_xpdir, &scenery_after) ||
+            scenery_after.fingerprint != scenery_before.fingerprint ||
+            scenery_after.input_count != scenery_before.input_count) {
+            logMsg(BP_WARN_LOG "Airport scenery changed while the cache "
+                "was rebuilding; it will be validated again at the next "
+                "simulator start");
+        } else if (!airport_cache_manifest_write(cachedir,
+            &scenery_after)) {
+            logMsg(BP_WARN_LOG "Unable to save the airport scenery cache "
+                "manifest; it will be rebuilt at the next simulator start");
+        }
+    }
+    if (!tug_glob_init())
+        goto errout;
 
-	XPLMRegisterCommandHandler(start_pb, start_pb_handler, 1, NULL);
-	XPLMRegisterCommandHandler(stop_pb, stop_pb_handler, 1, NULL);
-	XPLMRegisterCommandHandler(start_cam, start_cam_handler, 1, NULL);
-	XPLMRegisterCommandHandler(stop_cam, stop_cam_handler, 1, NULL);
-	XPLMRegisterCommandHandler(conn_first, conn_first_handler, 1, NULL);
-	XPLMRegisterCommandHandler(cab_cam, cab_cam_handler, 1, NULL);
-	XPLMRegisterCommandHandler(recreate_routes, recreate_routes_handler,
-	    1, NULL);
+    XPLMRegisterCommandHandler(start_pb, start_pb_handler, 1, NULL);
+    XPLMRegisterCommandHandler(stop_pb, stop_pb_handler, 1, NULL);
+    XPLMRegisterCommandHandler(pause_pb, pause_pb_handler, 1, NULL);
+    XPLMRegisterCommandHandler(start_cam, start_cam_handler, 1, NULL);
+    XPLMRegisterCommandHandler(stop_cam, stop_cam_handler, 1, NULL);
+    XPLMRegisterCommandHandler(conn_first, conn_first_handler, 1, NULL);
+    XPLMRegisterCommandHandler(call_emergency_tow, emergency_tow_handler, 1,
+        NULL);
+    XPLMRegisterCommandHandler(cab_cam, cab_cam_handler, 1, NULL);
+    XPLMRegisterCommandHandler(recreate_routes, recreate_routes_handler,
+                               1, NULL);
+    XPLMRegisterCommandHandler(pref_cmd, preference_window_handler,
+                               1, NULL);
+    XPLMRegisterCommandHandler(reload_cmd, reload_handler, 1, NULL);
+    XPLMRegisterCommandHandler(abort_push, abort_push_handler, 1, NULL);
+    XPLMRegisterCommandHandler(ground_ops_show_hide,
+        ground_ops_show_hide_handler, 1, NULL);
+    XPLMRegisterCommandHandler(ground_ops_expand_collapse,
+        ground_ops_expand_collapse_handler, 1, NULL);
 
-	plugins_menu_item = XPLMAppendMenuItem(XPLMFindPluginsMenu(),
-	    "Progressive Taxi", NULL, 1);
-	root_menu = XPLMCreateMenu("Progressive Taxi", XPLMFindPluginsMenu(),
-	    plugins_menu_item, menu_cb, NULL);
-	/* the automatic pushback goes first: it's the main feature */
-	ptx_xp_enable(root_menu);
+    XPLMRegisterCommandHandler(manual_push_left, manual_push_left_handler, 1, NULL);
+    XPLMRegisterCommandHandler(manual_push_right, manual_push_right_handler, 1, NULL);
+    XPLMRegisterCommandHandler(manual_push_reverse, manual_push_reverse_handler, 1, NULL);
+    XPLMRegisterCommandHandler(manual_push_start, manual_push_start_handler, 1, NULL);
+    XPLMRegisterCommandHandler(manual_push_start_no_yoke, manual_push_start_no_yoke_handler, 1, NULL);
 
-	start_pb_plan_menu_item = XPLMAppendMenuItem(root_menu,
-	    _("Pre-plan pushback"), start_cam, 1);
-	stop_pb_plan_menu_item = XPLMAppendMenuItem(root_menu,
-	    _("Close pushback planner"), stop_cam, 1);
-	start_pb_menu_item = XPLMAppendMenuItem(root_menu,
-	    _("Start pushback"), start_pb, 1);
-	stop_pb_menu_item = XPLMAppendMenuItem(root_menu,
-	    _("Stop pushback"), stop_pb, 1);
-	cab_cam_menu_item = XPLMAppendMenuItem(root_menu,
-	    _("Tug cab view"), cab_cam, 1);
-	prefs_menu_item = XPLMAppendMenuItem(root_menu,
-	    _("Preferences..."), &prefs_menu_item, 1);
+    plugins_menu_item = XPLMAppendMenuItem(XPLMFindPluginsMenu(),
+                                           "Progressive Taxi", NULL, 1);
+    root_menu = XPLMCreateMenu("Progressive Taxi", XPLMFindPluginsMenu(),
+                               plugins_menu_item, menu_cb, NULL);
+    /* the automatic pushback goes first: it's the main feature */
+    ptx_xp_enable(root_menu);
 
-	XPLMEnableMenuItem(root_menu, start_pb_menu_item, B_TRUE);
-	XPLMEnableMenuItem(root_menu, stop_pb_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, start_pb_plan_menu_item, B_TRUE);
-	XPLMEnableMenuItem(root_menu, stop_pb_plan_menu_item, B_FALSE);
-	XPLMEnableMenuItem(root_menu, cab_cam_menu_item, B_FALSE);
+    start_pb_plan_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                            _("Pre-plan pushback"), start_cam);
+    stop_pb_plan_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                           _("Close pushback planner"), stop_cam);
+    conn_first_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                         _("Connect tug first"), conn_first);
+    start_pb_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                       _("Start pushback"), start_pb);
+    stop_pb_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+        _("End pushback and disconnect"), stop_pb);
+    XPLMAppendMenuItemWithCommand(root_menu,
+        _("Pause/Resume automatic pushback"), pause_pb);
+    cab_cam_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                      _("Tug cab view"), cab_cam);
 
-	XPLMRegisterFlightLoopCallback(status_check, STATUS_CHECK_INTVAL, NULL);
+    XPLMAppendMenuSeparator(root_menu);
+    ground_ops_show_hide_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+        _("Ground Operations: Show/Hide"), ground_ops_show_hide);
+    ground_ops_expand_collapse_menu_item = XPLMAppendMenuItemWithCommand(
+        root_menu, _("Ground Operations: Expand/Collapse"),
+        ground_ops_expand_collapse);
+    XPLMAppendMenuSeparator(root_menu);
+    prefs_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                    _("Preferences..."), pref_cmd);
+    reload_menu_item = XPLMAppendMenuItemWithCommand(root_menu,
+                                                     _("Reload Progressive Taxi"), reload_cmd);
 
-	/* If the user OK'd it, remove the default tug */
-	(void) conf_get_b(bp_conf, "dont_hide_xp11_tug", &dont_hide_xp_tug);
-	if (!dont_hide_xp_tug && bp_xp_ver >= 11000)
-		set_xp11_tug_hidden(B_TRUE);
+    tug_starts_next_plane = B_FALSE;
+    (void) conf_get_b(bp_conf,"tug_starts_next_plane", &tug_starts_next_plane);
 
-	inited = B_TRUE;
+    tug_auto_start = B_FALSE;
+    // feature disabled for now.. waiting for a better UI paradigm
+    //(void) conf_get_b(bp_conf,"tug_auto_start", &tug_auto_start);
+    //
 
-	free(cachedir);
+    prefs_enable = B_TRUE;
+    start_pb_enable = B_TRUE;
+    conn_first_enable = B_TRUE;
+    stop_pb_enable = B_FALSE;
+    start_pb_plan_enable = B_TRUE;
+    stop_pb_plan_enable = B_FALSE;
+    cab_cam_enable = B_FALSE;
+    if (ground_ops_ui_is_enabled() && !ground_ops_ui_init()) {
+        ground_ops_ui_fini();
+        interface_mode = BP_INTERFACE_MODE_LEGACY_MAGIC_SQUARES;
+        ground_ops_ui_set_enabled(B_FALSE);
+        logMsg(BP_ERROR_LOG "Unable to initialize Ground Operations; "
+            "using the legacy magic-squares interface for this session");
+    }
+    enable_menu_items();
 
-	return (1);
+    XPLMRegisterFlightLoopCallback(status_check, STATUS_CHECK_INTVAL, NULL);
+
+    /* If the user OK'd it, remove the default tug */
+    (void)conf_get_b(bp_conf, "dont_hide_xp11_tug", &dont_hide_xp_tug);
+    if ((!dont_hide_xp_tug) && (bp_xp_ver >= 11000) && (bp_xp_ver < 12000))
+        set_xp11_tug_hidden(B_TRUE);
+
+    inited = B_TRUE;
+    bp_nosewheel_status_enable();
+
+    free(cachedir);
+
+    return (1);
 
 errout:
-	if (cachedir != NULL)
-		free(cachedir);
-	if (airportdb != NULL) {
-		airportdb_destroy(airportdb);
-		free(airportdb);
-		airportdb = NULL;
-	}
-	tug_glob_fini();
+    bp_nosewheel_status_invalidate(BP_NW_INITIALIZATION_FAILED);
+    if (cachedir != NULL)
+        free(cachedir);
+    if (airportdb != NULL)
+    {
+        airportdb_destroy(airportdb);
+        free(airportdb);
+        airportdb = NULL;
+    }
+    tug_glob_fini();
 
-	return (0);
+    return (0);
 }
 
 static void
 bp_priv_disable(void)
 {
-	if (!inited)
-		return;
+    bp_nosewheel_status_invalidate(BP_NW_PROVIDER_DISABLED);
+    if (!inited)
+        return;
 
-	set_xp11_tug_hidden(B_FALSE);
+    set_xp11_tug_hidden(B_FALSE);
+    ground_ops_ui_fini();
+    main_intf_hide();
 
-	XPLMUnregisterCommandHandler(start_pb, start_pb_handler, 1, NULL);
-	XPLMUnregisterCommandHandler(stop_pb, stop_pb_handler, 1, NULL);
-	XPLMUnregisterCommandHandler(start_cam, start_pb_handler, 1, NULL);
-	XPLMUnregisterCommandHandler(stop_cam, stop_pb_handler, 1, NULL);
-	XPLMUnregisterCommandHandler(conn_first, conn_first_handler, 1, NULL);
-	XPLMUnregisterCommandHandler(cab_cam, cab_cam_handler, 1, NULL);
-	XPLMUnregisterCommandHandler(recreate_routes, recreate_routes_handler,
-	    1, NULL);
+    XPLMUnregisterCommandHandler(start_pb, start_pb_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(stop_pb, stop_pb_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(pause_pb, pause_pb_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(start_cam, start_cam_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(stop_cam, stop_cam_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(conn_first, conn_first_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(call_emergency_tow, emergency_tow_handler, 1,
+        NULL);
+    XPLMUnregisterCommandHandler(cab_cam, cab_cam_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(recreate_routes, recreate_routes_handler,
+                                 1, NULL);
+    XPLMUnregisterCommandHandler(abort_push, abort_push_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(ground_ops_show_hide,
+        ground_ops_show_hide_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(ground_ops_expand_collapse,
+        ground_ops_expand_collapse_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(manual_push_left, manual_push_left_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(manual_push_right, manual_push_right_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(manual_push_reverse, manual_push_reverse_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(manual_push_start, manual_push_start_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(manual_push_start_no_yoke, manual_push_start_no_yoke_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(pref_cmd, preference_window_handler, 1, NULL);
+    XPLMUnregisterCommandHandler(reload_cmd, reload_handler, 1, NULL);
 
-	ptx_xp_disable();
-	bp_fini();
-	tug_glob_fini();
-	cab_view_fini();
+    ptx_xp_disable();
+    bp_fini();
+    tug_glob_fini();
+    cab_view_fini();
 
-	airportdb_destroy(airportdb);
-	free(airportdb);
-	airportdb = NULL;
+    airportdb_destroy(airportdb);
+    free(airportdb);
+    airportdb = NULL;
 
-	XPLMDestroyMenu(root_menu);
-	XPLMRemoveMenuItem(XPLMFindPluginsMenu(), plugins_menu_item);
-	XPLMUnregisterFlightLoopCallback(status_check, NULL);
+    XPLMDestroyMenu(root_menu);
+    XPLMRemoveMenuItem(XPLMFindPluginsMenu(), plugins_menu_item);
+    XPLMUnregisterFlightLoopCallback(status_check, NULL);
 
-	inited = B_FALSE;
+    inited = B_FALSE;
 }
 
 static float
 bp_do_reload(float u1, float u2, int u3, void *u4)
 {
-	UNUSED(u1);
-	UNUSED(u2);
-	UNUSED(u3);
-	UNUSED(u4);
-	if (reload_rqst) {
-		bp_priv_disable();
-		VERIFY(bp_priv_enable());
-		reload_rqst = B_FALSE;
-	}
-	return (0);
+    UNUSED(u1);
+    UNUSED(u2);
+    UNUSED(u3);
+    UNUSED(u4);
+    if (interface_mode_change_rqst)
+    {
+        bp_interface_mode_t new_mode = requested_interface_mode;
+
+        interface_mode_change_rqst = B_FALSE;
+        if (!apply_interface_mode(new_mode)) {
+            (void)conf_set_i(bp_conf, BP_INTERFACE_MODE_CONFIG_KEY,
+                interface_mode);
+        }
+    }
+    if (legacy_magic_squares_reposition_rqst)
+    {
+        legacy_magic_squares_reposition_rqst = B_FALSE;
+        if (bp_interface_mode_uses_legacy_magic_squares(interface_mode))
+            main_intf_reposition();
+    }
+    if (reload_rqst)
+    {
+        bp_nosewheel_status_invalidate(BP_NW_CORE_RELOAD);
+        bp_priv_disable();
+        VERIFY(bp_priv_enable());
+        reload_rqst = B_FALSE;
+    }
+    return (0);
 }
 
-void
-bp_sched_reload(void)
+void bp_sched_reload(void)
 {
-	reload_rqst = B_TRUE;
-	ASSERT(reload_floop_ID != NULL);
-	XPLMScheduleFlightLoop(reload_floop_ID, -1, 1);
+    reload_rqst = B_TRUE;
+    ASSERT(reload_floop_ID != NULL);
+    XPLMScheduleFlightLoop(reload_floop_ID, -1, 1);
 }
 
-#if	IBM
+static int
+abort_push_handler(XPLMCommandRef cmd, XPLMCommandPhase phase,
+                   void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+    bp_nosewheel_status_invalidate(BP_NW_HARD_ABORT);
+    bp_fini();
+    logMsg(BP_INFO_LOG "bp_fini called from abort_push_handler, bp_started = %d", bp_started);
+    slave_mode = B_FALSE;
+    coupled_state_change();
+    return (1);
+}
+
+static void manual_push_handler(bool_t to_the_left)
+{
+// simulation joystick position    
+#define STEER_INCR 10
+#define STEER_MAX 100
+
+    if (push_manual.active) {
+        if (push_manual.with_yoke) {
+            logMsg(BP_INFO_LOG "Manual push:  Manual nose tug rotation disabled (yoke support enabled)");
+            return;
+        }
+        float angle =  to_the_left ? push_manual.angle - STEER_INCR : push_manual.angle + STEER_INCR;
+
+        if (angle > STEER_MAX) {
+            angle = STEER_MAX;
+        }
+        if (angle < -STEER_MAX) {
+            angle = -STEER_MAX;
+        }
+        push_manual.angle = angle;
+        logMsg(BP_INFO_LOG "Manual push: New steer angle %f", angle);
+        return;
+    } else {
+        logMsg(BP_INFO_LOG "Manual push: Manual nose tug rotation disabled (manual push not active)");
+    }
+}
+
+static int
+manual_push_left_handler(XPLMCommandRef cmd, XPLMCommandPhase phase,
+                   void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+    manual_push_handler(true);
+    return (1);
+}
+
+static int
+manual_push_right_handler(XPLMCommandRef cmd, XPLMCommandPhase phase,
+                   void *refcon)
+{
+    UNUSED(cmd);
+    UNUSED(refcon);
+    if (phase != xplm_CommandEnd)
+        return (0);
+    manual_push_handler(false);
+    return (1);
+}
+
+#if IBM
 BOOL WINAPI
 DllMain(HINSTANCE hinst, DWORD reason, LPVOID resvd)
 {
-	UNUSED(hinst);
-	UNUSED(resvd);
-	lacf_glew_dllmain_hook(reason);
-	return (TRUE);
+    UNUSED(hinst);
+    UNUSED(resvd);
+    lacf_glew_dllmain_hook(reason);
+    return (TRUE);
 }
-#endif	/* IBM */
+#endif /* IBM */
+
+void set_pref_widget_status(bool_t active)
+{
+    pref_widget_active_status = active;
+    start_pb_enable = !active;
+    conn_first_enable = !active;
+    start_pb_plan_enable = !active;
+    prefs_enable = !active;
+    enable_menu_items();
+}
+
+bool_t
+get_pref_widget_status(void)
+{
+    return pref_widget_active_status;
+}
+
+void
+enable_replanning(void)
+{       
+    if (start_pb_enable || manual_bp_is_running()) { // (re)planning is already enabled, noop
+        return;
+    }
+
+    start_pb_enable = B_TRUE;
+    late_plan_requested = B_TRUE;
+    enable_menu_items();
+    XPLMSetMenuItemName(root_menu, start_pb_menu_item, _("Change pushback"), 0);
+}
+
+void
+disable_replanning(void)
+{
+
+    if (manual_bp_is_running()) { 
+        return;
+    }
+
+    start_pb_enable = B_FALSE;
+    enable_menu_items();
+    XPLMSetMenuItemName(root_menu, start_pb_menu_item, _("Start pushback"), 0);
+}

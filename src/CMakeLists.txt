@@ -13,9 +13,34 @@
 
 # Copyright 2022 Saso Kiselkov. All rights reserved.
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 project(bp)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 11)
+
+option(BP_EMULATE_MAC_UI_SCALE
+    "Use the macOS Ground Operations scale on a development build" OFF)
+if(BP_EMULATE_MAC_UI_SCALE)
+    add_compile_definitions(BP_EMULATE_MAC_UI_SCALE=1)
+else()
+    add_compile_definitions(BP_EMULATE_MAC_UI_SCALE=0)
+endif()
+
+option(BP_ENABLE_RUNTIME_TELEMETRY
+    "Record per-pushback diagnostic CSV files at runtime" OFF)
+if(BP_ENABLE_RUNTIME_TELEMETRY)
+    add_compile_definitions(BP_ENABLE_RUNTIME_TELEMETRY=1)
+else()
+    add_compile_definitions(BP_ENABLE_RUNTIME_TELEMETRY=0)
+endif()
+
+if (NOT DEFINED COPYRIGHT_YEAR)
+    string(TIMESTAMP COPYRIGHT_YEAR "%Y")
+endif()
+
+add_compile_definitions(COPYRIGHT_YEAR="${COPYRIGHT_YEAR}")
 
 # Platform-specific variables
 if(APPLE)
@@ -35,7 +60,17 @@ else()
 	set(PLUGIN_BIN_OUTDIR "lin_x64")
 endif()
 
+# Set include directories used by our code and dependencies.
+include_directories("${CMAKE_SOURCE_DIR}/")
+include_directories("${CMAKE_SOURCE_DIR}/imgui")
+include_directories("${CMAKE_SOURCE_DIR}/imgui/misc/cpp")
+include_directories("${CMAKE_SOURCE_DIR}/imgui/misc/freetype")
+include_directories("${CMAKE_SOURCE_DIR}/ImgWindow")
+include_directories("${CMAKE_SOURCE_DIR}/Font")
+
 # Build path setup
+# ProgressiveTaxi keeps libacfutils as a submodule in src/libacfutils
+# (olivierbutler/libacfutils, the fork BetterPushbackMod is built against).
 file(GLOB LIBACFUTILS "libacfutils")
 file(GLOB GLEW_PREFIX "${LIBACFUTILS}/glew/glew-1.13.0-${PLAT_LONG}/install")
 file(GLOB OPENAL_PREFIX
@@ -51,9 +86,10 @@ file(GLOB OPUSFILE_PREFIX "${LIBACFUTILS}/opus/opusfile-${PLAT_LONG}")
 file(GLOB LIBOGG_PREFIX "${LIBACFUTILS}/opus/libogg-${PLAT_LONG}/install")
 file(GLOB OPENSSL_PREFIX "${LIBACFUTILS}/ssl/openssl-${PLAT_LONG}")
 file(GLOB ICONV_PREFIX "${LIBACFUTILS}/libiconv/libiconv-${PLAT_LONG}")
+file(GLOB CURL_PREFIX "${LIBACFUTILS}/curl/libcurl-${PLAT_LONG}")
 
-file(GLOB SRC *.c planner/*.c)
-file(GLOB HDR *.h planner/*.h)
+file(GLOB SRC *.cpp *.c  "imgui/*.cpp" "imgui/misc/cpp/*.cpp"  "imgui/misc/freetype/*.cpp"   "ImgWindow/*.cpp" planner/*.c)
+file(GLOB HDR "*.h" "imgui/*.h" "imgui/misc/cpp/*.h" "imgui/misc/freetype/*.h"  "ImgWindow/*.h"  "Font/*.h" planner/*.h)
 
 # The planner core (and compute_segs) is shared with tools/plan_cli and is
 # checked against the Python prototype bit for bit; keep the compiler from
@@ -85,20 +121,24 @@ include_directories(bp PUBLIC
     "${CAIRO_PREFIX}/include/cairo"
     "${FREETYPE_PREFIX}/include/freetype2"
     "${GLEW_PREFIX}/include"
+    "${CURL_PREFIX}/include"
     )
 
 # Compiler flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror --std=c99 \
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror --std=c99 -Wno-type-limits\
     -Wno-unused-local-typedefs -fvisibility=hidden")
 if(APPLE)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -arch x86_64 -arch arm64 \
 	    -Wno-deprecated")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -arch x86_64 -arch arm64 \
+	    -Wno-deprecated -Wno-nontrivial-memcall")
 endif()
 
 # Defines
 add_definitions(-D_GNU_SOURCE)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 add_definitions(-DDEBUG)
+add_definitions(-DCURL_STATICLIB)
 add_definitions(-DGLEW_BUILD=GLEW_STATIC -DGLEW_MX)
 add_definitions(-DPCRE2_CODE_UNIT_WIDTH=8 -DPCRE2_STATIC)
 add_definitions(-DLIBXML_STATIC)
@@ -112,7 +152,7 @@ execute_process(COMMAND git describe --tags --always --dirty
 string(REGEX REPLACE "\n$" "" BP_PLUGIN_VERSION "${BP_PLUGIN_VERSION}")
 
 add_definitions(-DBP_PLUGIN_VERSION="${BP_PLUGIN_VERSION}")
-add_definitions(-DXPLM200=1 -DXPLM210=1 -DXPLM300=1 -DXPLM301=1 -DXPLM302=1)
+add_definitions(-DXPLM200=1 -DXPLM210=1 -DXPLM300=1 -DXPLM301=1 -DXPLM303=1 -DXPLM400=1 -DXPLM411=1 -DXPLM420=1)
 if(APPLE)
 	add_definitions(-DAPL=1 -DIBM=0 -DLIN=0)
 elseif(WIN32)
@@ -189,7 +229,9 @@ elseif(WIN32)
 	    "-lwinmm"
 	    "-ldbghelp"
 	    "-lpsapi"
-	    "-lcrypt32")
+		"-lbcrypt"
+	    "-lcrypt32"
+		"-lpthread")
 else()
 	set(EXTRA_PLATFORM_LIBS "")
 endif()

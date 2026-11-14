@@ -109,11 +109,14 @@ build_curl() {
 	    -DZLIB_INCLUDE_DIR="$LAU/zlib/zlib-mac-64/include" \
 	    -DZLIB_LIBRARY="$LAU/zlib/zlib-mac-64/lib/libz.a" \
 	    "-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64" \
-	    ../curl-8.4.0 &&
+	    "../$CURL_DIR" &&
 	  make -j "$NCPUS" && make install )
 }
 if [[ ! -f "$LAU/curl/libcurl-mac-64/lib/libcurl.a" ]]; then
-	[[ -d "$LAU/curl/curl-8.4.0" ]] || ( cd "$LAU/curl" && tar -xJf curl-8.4.0.tar.xz )
+	# 版本跟著 libacfutils 走（a4e2070 是 8.4.0 .tar.xz，olivierbutler 的是 8.13.0 .tar.bz2）
+	CURL_TAR="$(cd "$LAU/curl" && ls curl-*.tar.* | head -1)"
+	CURL_DIR="${CURL_TAR%.tar.*}"
+	[[ -d "$LAU/curl/$CURL_DIR" ]] || ( cd "$LAU/curl" && tar -xf "$CURL_TAR" )
 	build_curl
 fi
 
@@ -182,8 +185,11 @@ archs="$(lipo -archs "$XPL")"
 [[ "$archs" == *x86_64* && "$archs" == *arm64* ]] || die "插件架構不對：${archs}"
 minos="$(otool -l -arch arm64 "$XPL" | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')"
 [[ "$minos" == "$MACOSX_DEPLOYMENT_TARGET" ]] || die "插件 minos=${minos}，預期 ${MACOSX_DEPLOYMENT_TARGET}"
+# 先存下 nm 的輸出：直接 nm | grep -q 的話，grep 一找到就結束，nm 吃到
+# SIGPIPE，pipefail 會把整條判成失敗（插件變大之後才出現）
+exports="$(nm -gU -arch arm64 "$XPL")"
 for sym in _XPluginStart _XPluginStop _XPluginEnable _XPluginDisable _XPluginReceiveMessage; do
-	nm -gU -arch arm64 "$XPL" | grep -q " T $sym\$" || die "插件沒有匯出 $sym"
+	grep -q " T $sym\$" <<<"$exports" || die "插件沒有匯出 $sym"
 done
 extra="$(find "$REPO/ProgressiveTaxi" -name '*.xpl' ! -path "$XPL")"
 [[ -z "$extra" ]] || die "發行資料夾裡有多餘的 xpl：${extra}"

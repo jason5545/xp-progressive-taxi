@@ -1,0 +1,338 @@
+#include <assert.h>
+#include <stdio.h>
+#include <math.h>
+
+#include "ground_ops_window_state.h"
+
+static const ground_ops_monitor_t monitors[] = {
+    {0, {0, 1080, 1920, 0}},
+    {1, {1920, 1440, 4480, 0}}
+};
+
+static void
+test_contract_sizes(void)
+{
+    int width = 0, height = 0;
+    static const ground_ops_ui_size_t sizes[] = {
+        GROUND_OPS_UI_SIZE_STANDARD,
+        GROUND_OPS_UI_SIZE_LARGE,
+        GROUND_OPS_UI_SIZE_EXTRA_LARGE
+    };
+#if APL || BP_EMULATE_MAC_UI_SCALE
+    static const double scales[] = {1.35, 1.6875, 2.025};
+    static const int orb_widths[] = {78, 98, 117};
+    static const int orb_heights[] = {329, 412, 494};
+    static const int panel_widths[] = {394, 493, 591};
+    static const int panel_heights[] = {567, 709, 851};
+#else
+    static const double scales[] = {1.0, 1.25, 1.5};
+    static const int orb_widths[] = {58, 73, 87};
+    static const int orb_heights[] = {244, 305, 366};
+    static const int panel_widths[] = {292, 365, 438};
+    static const int panel_heights[] = {420, 525, 630};
+#endif
+
+    assert(ground_ops_ui_size_valid(GROUND_OPS_UI_SIZE_STANDARD));
+    assert(ground_ops_ui_size_valid(GROUND_OPS_UI_SIZE_LARGE));
+    assert(ground_ops_ui_size_valid(GROUND_OPS_UI_SIZE_EXTRA_LARGE));
+    assert(!ground_ops_ui_size_valid(-1));
+    assert(!ground_ops_ui_size_valid(3));
+    assert(ground_ops_ui_size_multiplier(GROUND_OPS_UI_SIZE_STANDARD) == 1.0);
+    assert(ground_ops_ui_size_multiplier(GROUND_OPS_UI_SIZE_LARGE) == 1.25);
+    assert(ground_ops_ui_size_multiplier(
+        GROUND_OPS_UI_SIZE_EXTRA_LARGE) == 1.5);
+
+    for (size_t index = 0; index < sizeof (sizes) / sizeof (sizes[0]);
+        index++) {
+        ground_ops_ui_size_set(sizes[index]);
+        assert(ground_ops_ui_size_get() == sizes[index]);
+        assert(fabs(ground_ops_ui_scale() - scales[index]) < 0.000001);
+        ground_ops_presentation_size(GROUND_OPS_PRESENTATION_ORB,
+            &width, &height);
+        assert(width == orb_widths[index]);
+        assert(height == orb_heights[index]);
+        ground_ops_presentation_size(GROUND_OPS_PRESENTATION_PANEL,
+            &width, &height);
+        assert(width == panel_widths[index]);
+        assert(height == panel_heights[index]);
+    }
+    ground_ops_ui_size_set((ground_ops_ui_size_t)99);
+    assert(ground_ops_ui_size_get() == GROUND_OPS_UI_SIZE_STANDARD);
+    ground_ops_ui_size_set(GROUND_OPS_UI_SIZE_STANDARD);
+    assert(ground_ops_presentation_valid(GROUND_OPS_PRESENTATION_HIDDEN));
+    assert(ground_ops_presentation_valid(GROUND_OPS_PRESENTATION_PANEL));
+    assert(!ground_ops_presentation_valid(3));
+    assert(ground_ops_startup_presentation(GROUND_OPS_PRESENTATION_ORB,
+        GROUND_OPS_PRESENTATION_PANEL) == GROUND_OPS_PRESENTATION_ORB);
+    assert(ground_ops_startup_presentation(GROUND_OPS_PRESENTATION_PANEL,
+        GROUND_OPS_PRESENTATION_ORB) == GROUND_OPS_PRESENTATION_PANEL);
+    assert(ground_ops_startup_presentation(GROUND_OPS_PRESENTATION_HIDDEN,
+        GROUND_OPS_PRESENTATION_ORB) == GROUND_OPS_PRESENTATION_ORB);
+    assert(ground_ops_startup_presentation(GROUND_OPS_PRESENTATION_HIDDEN,
+        GROUND_OPS_PRESENTATION_HIDDEN) == GROUND_OPS_PRESENTATION_PANEL);
+    assert(ground_ops_startup_presentation(-1, 99) ==
+        GROUND_OPS_PRESENTATION_PANEL);
+    assert(ground_ops_window_mode_valid(GROUND_OPS_WINDOW_FLOAT));
+    assert(ground_ops_window_mode_valid(GROUND_OPS_WINDOW_POPOUT));
+    assert(!ground_ops_window_mode_valid(2));
+}
+
+static void
+test_anchor_and_visibility(void)
+{
+    ground_ops_rect_t rect = {1568, 1000, 1860, 620};
+
+    assert(ground_ops_rect_has_visible_area(&rect, monitors, 2, 40));
+    ground_ops_rect_resize_top_right(&rect, 58, 58);
+    assert(rect.right == 1860 && rect.top == 1000);
+    assert(rect.left == 1802 && rect.bottom == 942);
+    assert(ground_ops_rect_monitor(&rect, monitors, 2) == 0);
+}
+
+static void
+test_edge_aware_expansion(void)
+{
+    ground_ops_rect_t left_edge = {0, 500, 58, 256};
+    ground_ops_rect_t right_edge = {1862, 800, 1920, 556};
+    ground_ops_rect_t bottom_edge = {400, 244, 458, 0};
+
+    assert(ground_ops_rect_resize_visible(&left_edge, 292, 420,
+        monitors, 2, 0, 0));
+    assert(left_edge.left == 0);
+    assert(left_edge.right == 292);
+    assert(left_edge.top == 500);
+    assert(left_edge.bottom == 80);
+
+    assert(ground_ops_rect_resize_visible(&right_edge, 292, 420,
+        monitors, 2, 0, 0));
+    assert(right_edge.left == 1628);
+    assert(right_edge.right == 1920);
+    assert(right_edge.top == 800);
+    assert(right_edge.bottom == 380);
+
+    assert(ground_ops_rect_resize_visible(&bottom_edge, 292, 420,
+        monitors, 2, 0, 0));
+    assert(bottom_edge.left == 400);
+    assert(bottom_edge.right == 692);
+    assert(bottom_edge.bottom == 0);
+    assert(bottom_edge.top == 420);
+}
+
+static void
+test_missing_monitor_recovery(void)
+{
+    ground_ops_rect_t rect = {9000, 9000, 9292, 8620};
+
+    assert(ground_ops_rect_recover(&rect, 292, 420, monitors, 2,
+        1, 24, 40));
+    assert(rect.right == 4456);
+    assert(rect.top == 1416);
+    assert(rect.left == 4164);
+    assert(rect.bottom == 996);
+    assert(ground_ops_rect_monitor(&rect, monitors, 2) == 1);
+
+    rect = (ground_ops_rect_t) {9000, 9000, 9058, 8942};
+    assert(ground_ops_rect_recover(&rect, 58, 58, monitors, 2,
+        99, 24, 40));
+    assert(ground_ops_rect_monitor(&rect, monitors, 2) == 0);
+}
+
+static void
+test_click_drag_threshold(void)
+{
+    assert(ground_ops_click_is_activation(0, 0, 5));
+    assert(ground_ops_click_is_activation(5, -5, 5));
+    assert(!ground_ops_click_is_activation(6, 0, 5));
+    assert(!ground_ops_click_is_activation(0, -6, 5));
+}
+
+static void
+test_effective_visibility(void)
+{
+    assert(!ground_ops_window_effectively_visible(false, false, false,
+        false, true));
+    assert(!ground_ops_window_effectively_visible(true, true, false,
+        false, true));
+    assert(ground_ops_window_effectively_visible(true, false, false,
+        false, true));
+    assert(!ground_ops_window_effectively_visible(true, false, true,
+        false, true));
+    assert(ground_ops_window_effectively_visible(true, false, true,
+        true, true));
+    assert(!ground_ops_window_effectively_visible(true, true, true,
+        true, true));
+    assert(!ground_ops_window_effectively_visible(true, false, false,
+        false, false));
+    assert(!ground_ops_window_effectively_visible(true, false, true,
+        true, false));
+}
+
+static void
+test_auto_expand_for_pilot_actions(void)
+{
+    ground_ops_auto_expand_state_t state = {0};
+
+    assert(ground_ops_auto_expand_update(&state, false, true,
+        GROUND_OPS_PRESENTATION_ORB, true, true, 1.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, false,
+        GROUND_OPS_PRESENTATION_ORB, true, true, 2.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, true, true, 3.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_EXPAND);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, true, true, 3.5) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 4.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 4.999) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 5.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_COLLAPSE);
+
+    ground_ops_auto_expand_reset(&state);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, true, true, 10.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_EXPAND);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 11.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, true, true, 11.5) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 12.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 13.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_COLLAPSE);
+
+    ground_ops_auto_expand_reset(&state);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, true, true, 20.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 21.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+
+    ground_ops_auto_expand_reset(&state);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, true, true, 30.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_EXPAND);
+    ground_ops_auto_expand_note_manual(&state, true);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, true, true, 30.5) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, false, true, 31.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+
+    ground_ops_auto_expand_reset(&state);
+    ground_ops_auto_expand_note_manual(&state, true);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 40.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 41.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_COLLAPSE);
+
+    ground_ops_auto_expand_reset(&state);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, true, true, 50.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 51.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 52.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_COLLAPSE);
+
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, true, true, NAN) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+
+    ground_ops_auto_expand_reset(&state);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_ORB, true, false, 60.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, true, false, 60.5) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 61.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_NONE);
+    assert(ground_ops_auto_expand_update(&state, true, true,
+        GROUND_OPS_PRESENTATION_PANEL, false, true, 62.0) ==
+        GROUND_OPS_AUTO_PRESENTATION_COLLAPSE);
+}
+
+int
+main(void)
+{
+    ground_ops_dwell_t dwell = {0};
+    assert(!ground_ops_dwell_update(&dwell, true, 10.0));
+    assert(!ground_ops_dwell_update(&dwell, true, 10.999));
+    assert(ground_ops_dwell_update(&dwell, true, 11.0));
+    assert(!ground_ops_dwell_update(&dwell, true, 20.0));
+    assert(!ground_ops_dwell_update(&dwell, false, 21.0));
+    assert(!ground_ops_dwell_update(&dwell, true, 22.0));
+    assert(!ground_ops_dwell_update(&dwell, false, 22.5));
+    assert(!ground_ops_dwell_update(&dwell, true, 22.6));
+    assert(!ground_ops_dwell_update(&dwell, true, 23.0));
+    assert(ground_ops_dwell_update(&dwell, true, 23.7));
+    assert(!ground_ops_dwell_update(&dwell, true, NAN));
+    assert(!ground_ops_dwell_update(&dwell, true, 50.0));
+    assert(!ground_ops_dwell_update(&dwell, true, 1.0));
+
+    ground_ops_rect_t rect = {300, 850, 592, 430};
+    ground_ops_rect_dock(&rect, 58, 244, &monitors[0], NULL);
+    assert(rect.left == 0 && rect.right == 58 && rect.top == 850);
+    rect = (ground_ops_rect_t){1400, 800, 1692, 380};
+    ground_ops_rect_dock(&rect, 58, 244, &monitors[0], NULL);
+    assert(rect.right == 1920 && rect.left == 1862);
+    ground_ops_rect_t rest = {111, 300, 0, 0};
+    ground_ops_rect_dock(&rect, 58, 244, &monitors[0], &rest);
+    assert(rect.left == 111 && rect.top == 780);
+    rest = (ground_ops_rect_t){99999, 99999, 0, 0};
+    ground_ops_rect_dock(&rect, 58, 244, &monitors[0], &rest);
+    assert(rect.right == 1920 && rect.bottom == 0);
+    rect = (ground_ops_rect_t){-18, 1100, 40, 856};
+    ground_ops_rect_clamp(&rect, &monitors[0], 0);
+    assert(rect.left == 0 && rect.top == 1080);
+    rect = (ground_ops_rect_t){1900, 100, 1958, -144};
+    ground_ops_rect_clamp(&rect, &monitors[0], 0);
+    assert(rect.right == 1920 && rect.bottom == 0);
+    /* Selecting the monitor under the pointer permits dragging across the seam. */
+    ground_ops_rect_clamp(&rect, &monitors[1], 0);
+    assert(rect.left == 1920);
+    const ground_ops_monitor_t negative = {2, {-1920, 1080, 0, 0}};
+    rect = (ground_ops_rect_t){-100, 700, 192, 280};
+    ground_ops_rect_dock(&rect, 78, 329, &negative, NULL);
+    assert(rect.right == 0 && rect.left == -78 && rect.top == 700);
+    const ground_ops_rect_t compact = {900, 800, 958, 556};
+    const ground_ops_rect_t expanded = {900, 800, 1192, 380};
+    rect = expanded;
+    assert(ground_ops_rect_nearest_right(&rect, &monitors[0]));
+    assert(ground_ops_rect_restore_compact(&rect, 58, 244, &monitors[0],
+        &expanded, &compact));
+    assert(rect.left == 900 && rect.top == 800 && rect.right == 958);
+    rect = expanded;
+    rect.left += 50;
+    rect.right += 50;
+    assert(!ground_ops_rect_restore_compact(&rect, 58, 244, &monitors[0],
+        &expanded, &compact));
+
+    test_contract_sizes();
+    test_anchor_and_visibility();
+    test_edge_aware_expansion();
+    test_missing_monitor_recovery();
+    test_click_drag_threshold();
+    test_effective_visibility();
+    test_auto_expand_for_pilot_actions();
+    puts("ground operations window state tests passed");
+    return (0);
+}
