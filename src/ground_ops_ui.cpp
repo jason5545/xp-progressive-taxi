@@ -587,8 +587,9 @@ public:
         current_presentation(initial_presentation),
         popped_out(initial_mode == GROUND_OPS_WINDOW_POPOUT)
     {
-        const char *lang= NULL;
-        (void)conf_get_str(bp_conf, "lang", &lang);
+        /* Follow the catalog language (bp_get_lang falls back to the X-Plane
+         * language); the cfg key alone left CJK strings in DejaVu as "?". */
+        const char *lang = bp_get_lang();
         use_chinese_font = (lang && strcmp(lang, "zh") == 0);
 
         SetWindowTitle(_("Progressive Taxi Ground Operations"));

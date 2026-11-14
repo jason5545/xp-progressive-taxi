@@ -396,7 +396,12 @@ void SettingsWindow::LoadConfig(void) {
         break;
       }
     }
-    is_chinese = (strcmp(lang, "zh") == 0);
+  }
+  /* Same language the string catalog was loaded with (falls back to the
+   * X-Plane language), otherwise Chinese text is drawn without CJK glyphs. */
+  {
+    const char *ui_lang = bp_get_lang();
+    is_chinese = (ui_lang != NULL && strcmp(ui_lang, "zh") == 0);
   }
 
   lang_pref = LANG_PREF_MATCH_REAL;
