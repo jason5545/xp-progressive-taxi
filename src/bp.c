@@ -1374,7 +1374,17 @@ nearing_end(void)
 	end_dir = hdg2dir(seg->end_hdg);
 	if (seg->backward)
 		end_dir = vect2_neg(end_dir);
-	end2acf = vect2_sub(bp.cur_pos.pos, seg->end_pos);
+	/*
+	 * Segments are in rear axle (main gear) coordinates, since we drive
+	 * with use_rear_pos (see veh_pos2fixed_pos() in driving.c), so
+	 * measure from the main gear, not the CG. From the CG this never
+	 * fired on aircraft whose main gear sits more than
+	 * NEARING_END_THRESHOLD behind the CG (FF777: ~2.1 m), because
+	 * drive_segs() finishes the segment first.
+	 */
+	end2acf = vect2_sub(vect2_add(bp.cur_pos.pos,
+	    vect2_scmul(hdg2dir(bp.cur_pos.hdg), bp.veh.fixed_z_off)),
+	    seg->end_pos);
 	long_displ = vect2_dotprod(end_dir, end2acf);
 	return (long_displ > -NEARING_END_THRESHOLD);
 }
