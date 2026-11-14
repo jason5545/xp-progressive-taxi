@@ -96,6 +96,21 @@
 
 #define	MAX_ARPT_DIST		10000	/* meters */
 
+/*
+ * Pushback guards. Some aircraft (FlightFactor 777F at RCSS, 11/14) never
+ * apply our nosewheel steering command: tire_steer_actual_deg stayed 0 the
+ * whole push. The tug model then thinks the nose is deflected, divides the
+ * target speed by cos(deflection) and keeps adding force: the aircraft went
+ * straight on at up to 4.3 m/s and hit a wall. So stop the pushback when
+ * the actual nosewheel angle doesn't follow our command, or when the
+ * aircraft runs much faster than we ever drive it.
+ */
+#define	STEER_GUARD_MIN_CMD	10	/* deg, ignore smaller commands */
+#define	STEER_GUARD_FRACT	0.3	/* actual below this x command = ignored */
+#define	STEER_GUARD_TIME	3	/* seconds of ignored steering */
+#define	OVERSPEED_FACT		1.5	/* x MAX_REV_SPEED / MAX_FWD_SPEED */
+#define	OVERSPEED_TIME		1	/* seconds */
+
 #define	TUG_APPCH_LONG_DIST	(6 * bp_ls.tug->veh.wheelbase)
 
 #define	MIN_RADIO_VOLUME_THRESH	0.1
@@ -145,6 +160,8 @@ static struct {
 	dr_t	tire_z, tire_x, leg_len, tirrad, tire_rot_spd;
 	dr_t	nw_steerdeg1, nw_steerdeg2;
 	dr_t	tire_steer_cmd;
+	dr_t	tire_steer_act;
+	bool_t	have_steer_act;
 	dr_t	override_steer;
 	dr_t	nw_steer_on;
 	dr_t	gear_types;
@@ -545,6 +562,7 @@ turn_nosewheel(double req_steer)
 	}
 
 	dr_setvf(&drs.tire_steer_cmd, &cur_nw_steer, bp.acf.nw_i, 1);
+	bp.nw_cmd = cur_nw_steer;
 
 	/*
 	 * Since the nosewheel always isn't exactly over the tug's fixed
@@ -1120,6 +1138,8 @@ bp_init(void)
 	fdr_find(&drs.nw_steerdeg2, "sim/aircraft/gear/acf_nw_steerdeg2");
 	fdr_find(&drs.tire_steer_cmd,
 	    "sim/flightmodel/parts/tire_steer_cmd");
+	drs.have_steer_act = dr_find(&drs.tire_steer_act,
+	    "sim/flightmodel2/gear/tire_steer_actual_deg");
 	fdr_find(&drs.override_steer,
 	    "sim/operation/override/override_wheel_steer");
 	fdr_find(&drs.nw_steer_on, "sim/cockpit2/controls/nosewheel_steer_on");
@@ -2626,6 +2646,47 @@ tug_pos_update(vect2_t my_pos, double my_hdg, bool_t pos_only)
 	}
 }
 
+/*
+ * Returns a spoken reason when the pushback must be abandoned (see
+ * STEER_GUARD_* and OVERSPEED_*), NULL otherwise. Runs once per frame while
+ * pushing; bp.nw_cmd is what turn_nosewheel() wrote last frame.
+ */
+static const char *
+push_guard(void)
+{
+	const seg_t *seg = list_head(&bp.segs);
+	double act = NAN, lim;
+
+	if (drs.have_steer_act && fabs(bp.nw_cmd) >= STEER_GUARD_MIN_CMD &&
+	    dr_getvf(&drs.tire_steer_act, &act, bp.acf.nw_i, 1) == 1 &&
+	    act * (bp.nw_cmd > 0 ? 1 : -1) <
+	    STEER_GUARD_FRACT * fabs(bp.nw_cmd)) {
+		bp.steer_bad_t += bp.d_t;
+	} else {
+		bp.steer_bad_t = 0;
+	}
+	if (bp.steer_bad_t >= STEER_GUARD_TIME) {
+		logMsg("pushback stopped: nosewheel steering ignored for %.1f s "
+		    "(commanded %.1f deg, actual %.1f deg, gear %d)",
+		    bp.steer_bad_t, bp.nw_cmd, act, bp.acf.nw_i);
+		return (_("Pushback stopped: the aircraft is not letting me "
+		    "steer the nosewheel."));
+	}
+
+	lim = OVERSPEED_FACT * (seg == NULL || seg->backward ?
+	    MAX_REV_SPEED : MAX_FWD_SPEED);
+	if (ABS(bp.cur_pos.spd) > lim)
+		bp.overspd_t += bp.d_t;
+	else
+		bp.overspd_t = 0;
+	if (bp.overspd_t >= OVERSPEED_TIME) {
+		logMsg("pushback stopped: aircraft moving %.2f m/s, limit "
+		    "%.2f m/s", ABS(bp.cur_pos.spd), lim);
+		return (_("Pushback stopped: the aircraft is moving too fast."));
+	}
+	return (NULL);
+}
+
 static float
 bp_run(float elapsed, float elapsed2, int counter, void *refcon)
 {
@@ -2679,6 +2740,19 @@ bp_run(float elapsed, float elapsed2, int counter, void *refcon)
 			msg_stop();
 			bp_complete();
 			return (0);
+		}
+		if (bp.step == PB_STEP_PUSHING) {
+			const char *why = push_guard();
+			if (why != NULL) {
+				XPLMSpeakString(why);
+				msg_stop();
+				dr_setf(&drs.axial_force, 0);
+				dr_setf(&drs.rot_force_N, 0);
+				bp_complete();
+				/* bp_complete() releases the brakes; hold it */
+				dr_setf(&drs.pbrake, 1);
+				return (0);
+			}
 		}
 		dr_seti(&drs.nw_steer_on, 1);
 		if (bp.step >= PB_STEP_DRIVING_UP_CONNECT &&

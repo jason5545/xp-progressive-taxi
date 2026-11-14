@@ -138,6 +138,10 @@ typedef struct {
 
 	bool_t		light_warn;
 
+	double		nw_cmd;		/* last nosewheel steer we commanded */
+	double		steer_bad_t;	/* secs the nosewheel ignored us */
+	double		overspd_t;	/* secs above the speed limit */
+
 	struct {
 		float	nosewheel_rot_spd;	/* rad/sec */
 	} anim;
