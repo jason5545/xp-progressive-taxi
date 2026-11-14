@@ -103,7 +103,7 @@ static XPLMCommandRef acknowledge_clear_cmd = nullptr;
 static bool_t initialized = B_FALSE;
 static bool_t ui_enabled = B_TRUE;
 static bool_t captions_enabled = B_TRUE;
-static bool_t auto_expand_for_actions = B_FALSE;
+static bool_t auto_expand_for_actions = B_TRUE;
 static bool_t planner_suspended = B_FALSE;
 static bool_t aircraft_eligible = B_FALSE;
 static bool_t legacy_gate_hidden = B_FALSE;
@@ -1306,7 +1306,8 @@ load_preferences(void)
 
     /* Interface selection is owned by xplane.c and survives UI reinitialization. */
     captions_enabled = B_TRUE;
-    auto_expand_for_actions = B_FALSE;
+    /* Default on, same as cfg.cpp: the compact rail shows no buttons. */
+    auto_expand_for_actions = B_TRUE;
     (void)conf_get_b(bp_conf, "ground_ops_auto_expand_actions",
         &auto_expand_for_actions);
     ground_ops_auto_expand_reset(&auto_expand_state);

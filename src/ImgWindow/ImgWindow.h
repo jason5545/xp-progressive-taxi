@@ -356,6 +356,17 @@ private:
     
     /** Shall reset the backspace key? (see HandleKeyFuncCB for details) */
     bool bResetBackspace = false;
+
+    /**
+     * X-Plane can deliver a mouse down and its up between two draw cycles
+     * (a trackpad tap does this every time).  ImGui samples io.MouseDown[]
+     * once per frame, so such a click would never be seen.  A press that no
+     * frame has seen yet keeps its release pending until updateImgui() has
+     * built one frame with the button down.
+     */
+    static constexpr int kMouseButtons = 3;
+    bool mouseDownUnseen[kMouseButtons] = {};
+    bool mouseUpPending[kMouseButtons] = {};
     
     /** Set if `xplm_WindowDecorationSelfDecoratedResizable`,
      *  ie. we need to handle resizing ourselves: X-Plane provides

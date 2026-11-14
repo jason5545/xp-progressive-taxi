@@ -412,7 +412,9 @@ void SettingsWindow::LoadConfig(void) {
     ground_ops_ui_size = GROUND_OPS_UI_SIZE_STANDARD;
   ground_ops_ui_size_list.selected = ground_ops_ui_size;
 
-  auto_expand_actions = B_FALSE;
+  /* On by default: the compact rail has no buttons, so a required pilot
+   * action (disconnect, clear signal) is invisible until the panel opens. */
+  auto_expand_actions = B_TRUE;
   (void)conf_get_b(bp_conf, "ground_ops_auto_expand_actions",
                    &auto_expand_actions);
 

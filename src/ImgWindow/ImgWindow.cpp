@@ -404,6 +404,15 @@ ImgWindow::updateImgui()
 			key = false;
 		}
 	}
+
+	// This frame has seen every press so far; apply releases held back for it
+	for (int button = 0; button < kMouseButtons; button++) {
+		if (mouseUpPending[button]) {
+			io.MouseDown[button] = false;
+			mouseUpPending[button] = false;
+		}
+		mouseDownUnseen[button] = false;
+	}
 	mFirstRender = false;
 }
 
@@ -515,6 +524,10 @@ ImgWindow::HandleMouseClickGeneric(int x, int y, XPLMMouseStatus inMouse, int bu
 
         case xplm_MouseDown:
             io.MouseDown[button] = true;
+            if (button >= 0 && button < kMouseButtons) {
+                mouseDownUnseen[button] = true;
+                mouseUpPending[button] = false;
+            }
             if (button == 0) {
                 pointerDownX = x;
                 pointerDownY = y;
@@ -550,7 +563,13 @@ ImgWindow::HandleMouseClickGeneric(int x, int y, XPLMMouseStatus inMouse, int bu
             break;
             
         case xplm_MouseUp:
-            io.MouseDown[button] = false;
+            if (button >= 0 && button < kMouseButtons &&
+                mouseDownUnseen[button]) {
+                // No frame has seen this press yet: release after the next one
+                mouseUpPending[button] = true;
+            } else {
+                io.MouseDown[button] = false;
+            }
             lastMouseDragX = lastMouseDragY = -1;
             dragWhat.clear();
             break;

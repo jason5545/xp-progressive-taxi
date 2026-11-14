@@ -83,6 +83,7 @@ static double handling_fraction(double elapsed, double duration)
 static double msg_dur(int msg) { UNUSED(msg); return 4; }
 static void msg_play(int msg) { UNUSED(msg); }
 static void turn_nosewheel(double value) { UNUSED(value); }
+static void rudder_steer_stop(void) {}
 static void push_at_speed(double speed, double accel, bool_t a, bool_t b)
 { UNUSED(speed); UNUSED(accel); UNUSED(a); UNUSED(b); }
 static double tug_plat_h(void *value) { UNUSED(value); return 0; }
