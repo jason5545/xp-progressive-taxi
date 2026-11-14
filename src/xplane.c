@@ -1442,14 +1442,16 @@ XPluginReceiveMessage(XPLMPluginID from, int msg, void *param)
         /* Force a reinit to re-read aircraft size params */
         smartcopilot_present = dr_find(&smartcopilot_state, "scp/api/ismaster");
         /*
-         * Only stop the planner camera if it is actually running.
-         * stop_cam_handler() calls bp_init() first, and right after a
-         * load the per-gear on-ground data isn't ready yet, so
-         * bp_init() would speak "aircraft appears to not have any
-         * steerable gears" on every aircraft/airport load.
+         * Keep BetterPushbackMod's unconditional call: stop_cam_handler()
+         * runs bp_init(), which is what looks up drs (drs.mtow etc.).
+         * status_check() calls main_intf() -> acf_is_airliner() every
+         * second and asserts on an unresolved drs.mtow (11/14 crash:
+         * 'dataref "" has bad type 0 (bp.c1403: &drs.mtow)'). We used to
+         * skip this when the planner wasn't open, because the old
+         * bp_init() spoke "no steerable gears" on every load; BPM's
+         * bp_init() no longer speaks there.
          */
-        if (bp_cam_is_running())
-            stop_cam_handler(NULL, xplm_CommandEnd, NULL);
+        stop_cam_handler(NULL, xplm_CommandEnd, NULL);
         sharedflight_present = dr_find(&sharedflight_state,
                                        "SharedFlight/is_pilot_flying");
         bp_fini();
