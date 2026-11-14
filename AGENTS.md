@@ -199,6 +199,6 @@ python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCTP.dat --label RCTP --out tool
 - `src/ptx_ui.c`：X-Plane 視窗。
 - `src/ptx_xp.c`：指令、背景載入、規劃、交給 BetterPushback 或 X-Plane 拖車、Plugins 子選單、`taxi_route` 指令。
 - `src/ptx_route.c`：`ptaxi/route/*` dataref、發布／收回、每幀進度。
-- `src/steer_late.c`：後推時跟飛機外掛搶鼻輪角度（FF 777 v2 每幀把 `tire_steer_cmd` 寫回 0）。bp.c 每次寫鼻輪指令就呼叫 `steer_late_note()`：馬上一起寫實際角 `tire_steer_act`；後推開始時另建一個 BeforeFlightModel 的 flight loop，同一幀再寫一次指令角和實際角。每趟後推結束記一行 `steer_late: … steering frames …`，統計值在哪個時間點被別人改掉。`push_guard()` 照舊讀實際角，鼻輪還是不跟就停推。11/14 寫好，還沒實飛驗證。同天在停機位用 Web API 直接寫 `tire_steer_cmd`／`tire_steer_act`，讀回全是 0（FF 連實際角都蓋），所以大概沒用；FF 777 改用方向舵輸入帶鼻輪，見 `design/ff777-nosewheel.md`。
+- `src/rudder_steer.c`：FF 777 後推時改用方向舵帶鼻輪。後推時轉向的是拖車，`turn_nosewheel()` 依拖車相對機身的角度算出鼻輪角、寫進 `tire_steer_cmd`；FF 777 不吃這個（每幀自己寫回 0），所以拖車接上（`bp_connected`）期間改成接管方向舵輸入（`override_joystick_heading`＋`yoke_heading_ratio` = 鼻輪角 ÷ 76），讓 FF 自己把鼻輪轉到那裡。拖車一脫開、後推結束或停推就還原。只對作者含 FlightFactor、ICAO 開頭 B77 的機型啟用。每趟記一行 `rudder_steer: rudder given back …`（鼻輪落後指令多少）。換算數字和還沒驗證的條件見 `design/ff777-nosewheel.md`。（11/14 先試過的 `steer_late.c`：直接在 flight loop 補寫 `tire_steer_cmd`／`tire_steer_act`，停機位實測 FF 連實際角都蓋，已拿掉。）
 - `tools/plan_cli/plan_route.c`：`plan_cli route`／`routes`。
 - `tools/proto/cl_vs_net.py`、`tools/proto/paint_radius.py`：量漆線離滑行網路多遠、路口漆線彎道半徑（定圓弧偏好半徑用）。

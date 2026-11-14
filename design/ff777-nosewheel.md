@@ -24,7 +24,7 @@ A: 8 write/read cycles; readback cmd==20: 0, act==20: 0, fm2act==20: 0
 A after 0.5 s                cmd=   0.00 act=   0.00 fm2cmd=   0.00 fm2act=   0.00 gs=0.000 pbrk=1.0
 ```
 
-讀回全部是 0：FF 連實際角都每幀寫回去。Web API 的寫入時間點跟插件 flight loop 不同，所以這不能完全否定 `src/steer_late.c`（在 flight loop 裡寫），但機會很小。
+讀回全部是 0：FF 連實際角都每幀寫回去。Web API 的寫入時間點跟插件 flight loop 不同，在插件 flight loop 裡補寫的版本（`steer_late.c`）也還沒實飛驗證就拿掉了，改走方向舵。
 
 ### B：方向舵輸入
 
@@ -60,15 +60,18 @@ slew 0->+1: reach 30 deg at 0.86 s, 60 deg at 1.73 s
 - **FF 的「方向舵帶 tiller」是哪個選項、預設開不開**。FF 更新紀錄有「Tiller by Rudder」「limited Tiller control via pedals」，選項檔裡沒找到對應名稱；如果是使用者選項，別人的設定可能只有 ±7°。
 - **推行中 X-Plane 物理會不會照 FF 的鼻輪角度轉**。停機位只能看角度，看不到軌跡。
 
-## 實作建議（還沒做）
+## 實作（11/14，`src/rudder_steer.c`，還沒實飛）
 
-在 `src/bp.c` 的 `turn_nosewheel()`（或 `src/steer_late.c`）裡，偵測到是 FF 777（`acf_author`／`.acf` 檔名，或 `push_guard()` 發現鼻輪不跟）時：
+後推時轉向的是拖車，鼻輪只是被拖車帶著轉：`turn_nosewheel()` 先轉拖車（`tug_set_steering`），再把拖車相對機身的角度當成鼻輪角。X-Plane 裡沒有真的拖車連桿，物理只認飛機的鼻輪角，所以「讓鼻輪等於拖車帶出來的角度」就是後推轉彎本身。FF 777 不讓外掛直接寫鼻輪角，就改用方向舵把同一個角度交給 FF，FF 自己的拖車也是這樣（`pushback.state.ini` 的 `tireAngle`）。
+
+機型判斷：`acf_author` 含 FlightFactor、`acf_ICAO` 開頭 B77（777-F 是 B77L，200ER 是 B772）。
 
 1. 後推開始時記下 `override_joystick_heading` 原值，設成 1。
 2. 每幀把要的鼻輪角度換算成 `yoke_heading_ratio = clamp(deg / 76, -1, 1)` 寫進去。
 3. 後推結束、停推、插件停用時一定還原 `override_joystick_heading` 和 `yoke_heading_ratio`（不然 Jason 的方向舵會一直被插件吃掉）。
 4. `push_guard()` 照留：方向舵也帶不動（例如沒液壓）就照樣停推。
-5. 實飛看 Log 的 `steer_late:` 統計與 `tire_steer_actual_deg`，確認可以後把 `steer_late.c` 拿掉。
+5. 只在 `bp_connected` 期間接管方向舵；拖車沒接上之前方向舵還是駕駛的。
+6. 每趟後推記一行 `rudder_steer: rudder given back; … frames, max nosewheel command …, nosewheel more than 10 deg off in … frames`，看鼻輪跟不跟得上。
 
 ## 來源
 

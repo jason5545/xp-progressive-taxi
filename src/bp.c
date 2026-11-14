@@ -67,7 +67,7 @@
 #include <acfutils/widget.h>
 
 #include "bp.h"
-#include "steer_late.h"
+#include "rudder_steer.h"
 #include "bp_cam.h"
 #include "cfg.h"
 #include "emergency_tow.h"
@@ -1959,7 +1959,7 @@ turn_nosewheel(double req_steer) {
 
     dr_setvf(&drs.tire_steer_cmd, &cur_nw_steer, bp.acf.nw_i, 1);
     bp.nw_cmd = cur_nw_steer;
-    steer_late_note(cur_nw_steer);
+    rudder_steer_note(cur_nw_steer);
 
     /*
      * Since the nosewheel always isn't exactly over the tug's fixed
@@ -2791,7 +2791,7 @@ bp_start(void) {
     if (bp_floop == NULL)
         bp_floop = XPLMCreateFlightLoop(&floop);
     XPLMScheduleFlightLoop(bp_floop, -1, 1);
-    steer_late_start();
+    rudder_steer_start();
 
     if (bp_legacy_routes() && emergency_tow_allows_persistent_routes() &&
         !slave_mode && !late_plan_requested && !push_manual.active &&
@@ -2867,7 +2867,7 @@ bp_fini(void) {
         XPLMDestroyFlightLoop(bp_floop);
         bp_floop = NULL;
     }
-    steer_late_stop();
+    rudder_steer_stop();
 
     XPLMUnregisterCommandHandler(disco_cmd, disco_handler, 1, NULL);
     XPLMUnregisterCommandHandler(recon_cmd, recon_handler, 1, NULL);
@@ -3262,7 +3262,7 @@ bp_complete(void) {
     if (!bp_started)
         return;
 
-    steer_late_stop();
+    rudder_steer_stop();
     bp_started = B_FALSE;
     bp_connected = B_FALSE;
     bp_conf_set_save_enabled(!bp_started);
@@ -3670,7 +3670,7 @@ pb_step_grab(void) {
     if (!slave_mode) {
         double steer = 0;
         dr_setvf(&drs.tire_steer_cmd, &steer, bp.acf.nw_i, 1);
-        steer_late_note(steer);
+        rudder_steer_note(steer);
     }
     tug_set_cradle_beeper_on(bp_ls.tug, B_TRUE);
     tug_set_lift_in_transit(B_TRUE);
