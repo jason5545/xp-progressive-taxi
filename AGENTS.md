@@ -199,5 +199,6 @@ python3 -I tools/proto/pbplan.py --apt /tmp/apt/RCTP.dat --label RCTP --out tool
 - `src/ptx_ui.c`：X-Plane 視窗。
 - `src/ptx_xp.c`：指令、背景載入、規劃、交給 BetterPushback 或 X-Plane 拖車、Plugins 子選單、`taxi_route` 指令。
 - `src/ptx_route.c`：`ptaxi/route/*` dataref、發布／收回、每幀進度。
+- `src/steer_late.c`：後推時跟飛機外掛搶鼻輪角度（FF 777 v2 每幀把 `tire_steer_cmd` 寫回 0）。bp.c 每次寫鼻輪指令就呼叫 `steer_late_note()`：馬上一起寫實際角 `tire_steer_act`；後推開始時另建一個 BeforeFlightModel 的 flight loop，同一幀再寫一次指令角和實際角。每趟後推結束記一行 `steer_late: … steering frames …`，統計值在哪個時間點被別人改掉。`push_guard()` 照舊讀實際角，鼻輪還是不跟就停推。11/14 寫好，還沒實飛驗證；不行的話下一步試 tiller 輸入。
 - `tools/plan_cli/plan_route.c`：`plan_cli route`／`routes`。
 - `tools/proto/cl_vs_net.py`、`tools/proto/paint_radius.py`：量漆線離滑行網路多遠、路口漆線彎道半徑（定圓弧偏好半徑用）。
