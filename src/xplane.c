@@ -21,6 +21,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <XPLMDataAccess.h>
 #include <XPLMMenus.h>
 #include <XPLMUtilities.h>
 #include <XPLMPlugin.h>
@@ -155,6 +156,50 @@ bool_t		slave_mode = B_FALSE;
 bool_t		op_complete = B_FALSE;
 bool_t		plan_complete = B_FALSE;
 char		bp_tug_name[64] = { 0 };
+
+/*
+ * Aircraft plugins stop driving the nosewheel themselves while the original
+ * BetterPushback's "bp/connected" is 1 (BetterPushback added it for that
+ * purpose: "steering lockout"). The FlightFactor 777 v2 is one of them: with
+ * only our renamed "ptaxi/connected" it keeps writing tire_steer_cmd and the
+ * nosewheel stays at 0 deg during the push. So we also publish "bp/started"
+ * and "bp/connected" under the original names, backed by the same variables,
+ * unless the original BetterPushback is loaded and owns them.
+ */
+static dr_t	bp_started_alias_dr, bp_connected_alias_dr;
+static bool_t	bp_alias_drs = B_FALSE;
+
+static void
+bp_alias_drs_init(void)
+{
+	if (bp_alias_drs)
+		return;
+	if (XPLMFindPluginBySignature(ORIG_BP_PLUGIN_SIG) !=
+	    XPLM_NO_PLUGIN_ID || XPLMFindDataRef("bp/connected") != NULL ||
+	    XPLMFindDataRef("bp/started") != NULL) {
+		logMsg("original BetterPushback datarefs already exist; "
+		    "aircraft that wait for bp/connected (FF 777) will not "
+		    "release nosewheel steering to us");
+		return;
+	}
+	dr_create_i(&bp_started_alias_dr, (int *)&bp_started, B_FALSE,
+	    "bp/started");
+	dr_create_i(&bp_connected_alias_dr, (int *)&bp_connected, B_FALSE,
+	    "bp/connected");
+	bp_alias_drs = B_TRUE;
+	logMsg("published bp/started and bp/connected for aircraft "
+	    "steering lockout");
+}
+
+static void
+bp_alias_drs_fini(void)
+{
+	if (!bp_alias_drs)
+		return;
+	dr_delete(&bp_started_alias_dr);
+	dr_delete(&bp_connected_alias_dr);
+	bp_alias_drs = B_FALSE;
+}
 
 /*
  * Hides or unhides the default X-Plane 11 tug. This is done by renaming the
@@ -653,7 +698,9 @@ XPluginStop(void)
 	acfutils_xlate_fini();
 	tug_glob_fini();
 	bp_shut_fini();
+	bp_alias_drs_fini();
 	dr_delete(&bp_started_dr);
+	dr_delete(&bp_connected_dr);
 	dr_delete(&slave_mode_dr);
 	dr_delete(&op_complete_dr);
 	dr_delete(&bp_tug_name_dr);
@@ -675,6 +722,13 @@ XPluginStop(void)
 PLUGIN_API int
 XPluginEnable(void)
 {
+	/*
+	 * Done here rather than in XPluginStart: by the time X-Plane enables
+	 * plugins, every global plugin has started, so the original
+	 * BetterPushback (if installed) is findable. Aircraft plugins load
+	 * later, with the aircraft, and so see our datarefs.
+	 */
+	bp_alias_drs_init();
 	return (bp_priv_enable());
 }
 
@@ -682,6 +736,7 @@ PLUGIN_API void
 XPluginDisable(void)
 {
 	bp_priv_disable();
+	bp_alias_drs_fini();
 }
 
 PLUGIN_API void
