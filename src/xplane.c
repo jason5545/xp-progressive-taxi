@@ -362,6 +362,7 @@ init_core_state(void)
     planner_open = B_FALSE;  /* BP_DATAREF planner_open */
     emergency_tow_reset();
     ground_ops_ui_reset_context();
+    main_intf_reset_start_gate();
     cab_view_init();
 }
 

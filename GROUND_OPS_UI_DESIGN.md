@@ -61,6 +61,13 @@ cockpit.
   session. The next simulator/plugin connection always starts visible.
 - The startup presentation follows the ground-speed gate: it hides while the
   aircraft is taxiing and restores when the aircraft is stopped on the ground.
+- ProgressiveTaxi narrows that gate (Jason 11/15): the presentation shows by
+  itself only when the session started stopped at a ramp start (apt.dat 1300)
+  and the aircraft has not yet moved more than 20 m from that start or
+  become airborne. A runway, taxiway or in-flight start, a hold-short stop
+  and the arrival stand stay hidden until the pilot uses **Show**. An
+  aircraft load or reposition starts over. An active operation stays
+  visible as before.
 - A later pilot **Show** command is authoritative and can keep the presentation
   visible while moving; **Hide** removes that manual override.
 
@@ -165,7 +172,7 @@ saved hidden presentation restores the last visible presentation instead. If
 no visible history exists, as on a first install or migration from an older
 hidden state, the expanded panel is the default. Startup visibility is automatic,
 so the ground-speed gate may hide the window while taxiing and restore it after
-the aircraft stops. An explicit pilot Show/Hide choice remains authoritative.
+the aircraft stops, but only at the start stand (see Hidden). An explicit pilot Show/Hide choice remains authoritative.
 
 ## Workflow stages and existing pushback states
 

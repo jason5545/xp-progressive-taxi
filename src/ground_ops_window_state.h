@@ -41,6 +41,29 @@ typedef struct {
     double action_completed_at;
 } ground_ops_auto_expand_state_t;
 
+/*
+ * When the Ground Operations window may show by itself (Jason 11/15): only
+ * when the session starts stopped at a ramp start (apt.dat 1300), and only
+ * until the aircraft has left it. A runway, taxiway or in-flight start, a
+ * hold-short stop and the arrival stand stay hidden until the pilot uses
+ * Show. A load or reposition resets it.
+ */
+#define GROUND_OPS_START_LEAVE_METERS 20.0
+
+typedef enum {
+    GROUND_OPS_STAND_UNKNOWN = -1,  /* can't tell yet; ask again later */
+    GROUND_OPS_STAND_NO = 0,
+    GROUND_OPS_STAND_YES = 1
+} ground_ops_stand_check_t;
+
+typedef struct {
+    bool decided;
+    bool at_stand;
+    bool departed;
+    double start_lat;
+    double start_lon;
+} ground_ops_start_gate_t;
+
 typedef enum {
     GROUND_OPS_AUTO_PRESENTATION_NONE = 0,
     GROUND_OPS_AUTO_PRESENTATION_EXPAND,
@@ -97,6 +120,15 @@ bool ground_ops_window_mode_valid(int mode);
 bool ground_ops_window_effectively_visible(bool window_exists,
     bool planner_suspended, bool legacy_gate_hidden,
     bool manual_visibility_override, bool aircraft_eligible);
+void ground_ops_start_gate_reset(ground_ops_start_gate_t *gate);
+/*
+ * Returns true while the startup presentation may show by itself.
+ * stand_check is called at most until it gives a definite answer, and only
+ * while the aircraft is stopped on the ground and not yet classified.
+ */
+bool ground_ops_start_gate_update(ground_ops_start_gate_t *gate,
+    bool on_ground, bool stopped, double lat, double lon,
+    ground_ops_stand_check_t (*stand_check)(void *arg), void *arg);
 bool ground_ops_ui_size_valid(int size);
 double ground_ops_ui_size_multiplier(ground_ops_ui_size_t size);
 ground_ops_ui_size_t ground_ops_ui_size_get(void);

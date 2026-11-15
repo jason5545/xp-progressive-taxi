@@ -16,7 +16,10 @@ package and its published compatibility notes.
 3. Copy the complete release `BetterPushback` folder into
    `X-Plane/Resources/plugins`.
 4. Start X-Plane and load the aircraft at a stand. Ground Operations opens
-   automatically when BetterPushback connects to the simulator.
+   automatically when BetterPushback connects to the simulator. It opens by
+   itself only at the stand the flight started on, until the aircraft leaves
+   it; after a runway start, at a hold-short stop or at the arrival stand,
+   open it from the plugin menu or the show command.
 
 Do not copy only the `.xpl` binary. Tug objects, sounds, configuration files,
 the wing walker, and supporting resources are part of the plugin.

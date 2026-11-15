@@ -234,6 +234,8 @@ bool_t find_nearest_airport_at(double latitude, double longitude,
 bool_t audio_sys_init(void);
 
 void main_intf(bool_t);
+/* Forget where the session started (aircraft load or reposition). */
+void main_intf_reset_start_gate(void);
 
 void main_intf_hide(void);
 

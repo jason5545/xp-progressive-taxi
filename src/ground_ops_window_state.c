@@ -66,6 +66,61 @@ ground_ops_window_effectively_visible(bool window_exists,
         (manual_visibility_override || !legacy_gate_hidden));
 }
 
+void
+ground_ops_start_gate_reset(ground_ops_start_gate_t *gate)
+{
+    if (gate != NULL)
+        *gate = (ground_ops_start_gate_t){0};
+}
+
+/* Flat-earth distance, fine for the few tens of metres this compares. */
+static double
+start_gate_distance(double lat1, double lon1, double lat2, double lon2)
+{
+    const double metres_per_degree = 3.14159265358979323846 / 180.0 *
+        6371008.8;
+    double north = (lat2 - lat1) * metres_per_degree;
+    double east = (lon2 - lon1) * metres_per_degree *
+        cos(lat1 * 3.14159265358979323846 / 180.0);
+
+    return (sqrt(north * north + east * east));
+}
+
+bool
+ground_ops_start_gate_update(ground_ops_start_gate_t *gate,
+    bool on_ground, bool stopped, double lat, double lon,
+    ground_ops_stand_check_t (*stand_check)(void *arg), void *arg)
+{
+    if (gate == NULL)
+        return (false);
+    if (!gate->decided) {
+        if (!on_ground) {
+            /* Started in the air: whatever stand we stop at is an arrival. */
+            gate->decided = true;
+            gate->at_stand = false;
+            gate->departed = true;
+            return (false);
+        }
+        if (!stopped || !isfinite(lat) || !isfinite(lon))
+            return (false);
+        ground_ops_stand_check_t check = stand_check != NULL ?
+            stand_check(arg) : GROUND_OPS_STAND_NO;
+        if (check == GROUND_OPS_STAND_UNKNOWN)
+            return (false);
+        gate->decided = true;
+        gate->at_stand = check == GROUND_OPS_STAND_YES;
+        gate->start_lat = lat;
+        gate->start_lon = lon;
+    }
+    if (!gate->departed && (!on_ground ||
+        (isfinite(lat) && isfinite(lon) &&
+        start_gate_distance(gate->start_lat, gate->start_lon, lat, lon) >
+        GROUND_OPS_START_LEAVE_METERS))) {
+        gate->departed = true;
+    }
+    return (gate->at_stand && !gate->departed);
+}
+
 bool
 ground_ops_ui_size_valid(int size)
 {

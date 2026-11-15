@@ -167,6 +167,89 @@ test_effective_visibility(void)
         true, false));
 }
 
+static int stand_calls;
+
+static ground_ops_stand_check_t
+stand_answer(void *arg)
+{
+    stand_calls++;
+    return (*(ground_ops_stand_check_t *)arg);
+}
+
+static void
+test_start_gate(void)
+{
+    ground_ops_start_gate_t gate;
+    ground_ops_stand_check_t answer;
+    /* about 11 m and 22 m north of 25.0 N */
+    const double lat = 25.0, near = 25.0001, far = 25.0002, lon = 121.0;
+
+    /* Stand start: shows until the aircraft has moved off. */
+    ground_ops_start_gate_reset(&gate);
+    answer = GROUND_OPS_STAND_YES;
+    stand_calls = 0;
+    assert(ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    assert(ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    assert(stand_calls == 1);
+    /* Moving at the stand (tug connected, short push) keeps it. */
+    assert(ground_ops_start_gate_update(&gate, true, false, near, lon,
+        stand_answer, &answer));
+    /* Past 20 m it is gone for good, even back at the stand. */
+    assert(!ground_ops_start_gate_update(&gate, true, true, far, lon,
+        stand_answer, &answer));
+    assert(!ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    /* A reposition starts over. */
+    ground_ops_start_gate_reset(&gate);
+    assert(ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    /* Becoming airborne also counts as leaving. */
+    assert(!ground_ops_start_gate_update(&gate, false, false, lat, lon,
+        stand_answer, &answer));
+
+    /* Runway start: never by itself. */
+    ground_ops_start_gate_reset(&gate);
+    answer = GROUND_OPS_STAND_NO;
+    stand_calls = 0;
+    assert(!ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    assert(!ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    assert(stand_calls == 1);
+
+    /* Unknown stand data: ask again next time. */
+    ground_ops_start_gate_reset(&gate);
+    answer = GROUND_OPS_STAND_UNKNOWN;
+    stand_calls = 0;
+    assert(!ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    answer = GROUND_OPS_STAND_YES;
+    assert(ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    assert(stand_calls == 2);
+
+    /* Moving on the ground before the first stop: wait, don't classify. */
+    ground_ops_start_gate_reset(&gate);
+    stand_calls = 0;
+    assert(!ground_ops_start_gate_update(&gate, true, false, lat, lon,
+        stand_answer, &answer));
+    assert(stand_calls == 0 && !gate.decided);
+
+    /* Air start: the stand reached after landing never shows by itself. */
+    ground_ops_start_gate_reset(&gate);
+    stand_calls = 0;
+    assert(!ground_ops_start_gate_update(&gate, false, false, lat, lon,
+        stand_answer, &answer));
+    assert(!ground_ops_start_gate_update(&gate, true, true, lat, lon,
+        stand_answer, &answer));
+    assert(stand_calls == 0);
+
+    assert(!ground_ops_start_gate_update(NULL, true, true, lat, lon,
+        stand_answer, &answer));
+}
+
 static void
 test_auto_expand_for_pilot_actions(void)
 {
@@ -332,6 +415,7 @@ main(void)
     test_missing_monitor_recovery();
     test_click_drag_threshold();
     test_effective_visibility();
+    test_start_gate();
     test_auto_expand_for_pilot_actions();
     puts("ground operations window state tests passed");
     return (0);

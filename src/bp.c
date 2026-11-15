@@ -72,6 +72,7 @@
 #include "cfg.h"
 #include "emergency_tow.h"
 #include "ground_ops_ui.h"
+#include "ground_ops_window_state.h"
 #include "handling_timing.h"
 #include "msg.h"
 #include "post_push_automation.h"
@@ -4642,9 +4643,85 @@ main_intf_reposition(void)
     hide_bp_status();
 }
 
+/*
+ * Ground Operations shows by itself only at the stand the session started
+ * on (ground_ops_start_gate_update). A ramp start counts when its point
+ * (the nose wheel, for an X-Plane stand start) lies ahead of the aircraft
+ * reference point along its heading, within the same 12 m sideways
+ * tolerance as the auto-pushback planner's own-stand test.
+ */
+enum {
+    START_STAND_BEHIND_M = 10,
+    START_STAND_AHEAD_M = 45,
+    START_STAND_SIDE_M = 12
+};
+
+static ground_ops_start_gate_t ground_ops_start_gate;
+
+void
+main_intf_reset_start_gate(void)
+{
+    ground_ops_start_gate_reset(&ground_ops_start_gate);
+}
+
+static ground_ops_stand_check_t
+start_stand_check(void *arg)
+{
+    geo_pos2_t pos = GEO_POS2(dr_getf(&drs.lat), dr_getf(&drs.lon));
+    double hdg = DEG2RAD(dr_getf(&drs.hdg));
+    double m_per_deg_lat = DEG2RAD(1) * EARTH_MSL;
+    double m_per_deg_lon = m_per_deg_lat * cos(DEG2RAD(pos.lat));
+    const ramp_start_t *found = NULL;
+    const airport_t *found_apt = NULL;
+    list_t *airports;
+
+    UNUSED(arg);
+    if (airportdb == NULL || !isfinite(pos.lat) || !isfinite(pos.lon) ||
+        !isfinite(hdg))
+        return (GROUND_OPS_STAND_UNKNOWN);
+
+    load_nearest_airport_tiles(airportdb, pos);
+    airports = find_nearest_airports(airportdb, pos);
+    for (airport_t *apt = list_head(airports); apt != NULL && found == NULL;
+         apt = list_next(airports, apt)) {
+        for (ramp_start_t *ramp = avl_first(&apt->ramp_starts);
+             ramp != NULL; ramp = AVL_NEXT(&apt->ramp_starts, ramp)) {
+            double east = (ramp->pos.lon - pos.lon) * m_per_deg_lon;
+            double north = (ramp->pos.lat - pos.lat) * m_per_deg_lat;
+            double ahead = east * sin(hdg) + north * cos(hdg);
+            double side = east * cos(hdg) - north * sin(hdg);
+
+            if (ahead >= -START_STAND_BEHIND_M &&
+                ahead <= START_STAND_AHEAD_M &&
+                fabs(side) <= START_STAND_SIDE_M) {
+                found = ramp;
+                found_apt = apt;
+                break;
+            }
+        }
+    }
+    if (found != NULL) {
+        logMsg(BP_INFO_LOG "Ground Ops start at stand %s %s: the window "
+            "may show by itself until the aircraft leaves it",
+            found_apt->icao[0] != '\0' ? found_apt->icao : found_apt->ident,
+            found->name);
+    } else {
+        logMsg(BP_INFO_LOG "Ground Ops start away from any stand: the "
+            "window stays hidden until shown from the menu or command");
+    }
+    free_nearest_airport_list(airports);
+    unload_distant_airport_tiles(airportdb, NULL_GEO_POS2);
+    return (found != NULL ? GROUND_OPS_STAND_YES : GROUND_OPS_STAND_NO);
+}
+
 void
 main_intf(bool_t force_hide) {
     bool_t ground_ops_eligible = bp_started || acf_is_airliner();
+    bool_t stopped = acf_on_gnd_stopped(NULL);
+    bool start_gate_open = ground_ops_start_gate_update(
+        &ground_ops_start_gate, dr_geti(&drs.onground_any) == 1,
+        stopped != B_FALSE, dr_getf(&drs.lat), dr_getf(&drs.lon),
+        start_stand_check, NULL);
 
     /*
      * Preserve the owner's legacy visibility gate for the replacement Ground
@@ -4652,10 +4729,15 @@ main_intf(bool_t force_hide) {
      * or manual show commands; an active operation remains eligible so its
      * status is not lost. The separate speed gate can still be overridden by
      * an eligible pilot using the show command while taxiing.
+     *
+     * This fork narrows "stopped on the ground" to "stopped at the stand
+     * the session started on, before leaving it" (Jason 11/15), so a
+     * runway start, a hold-short stop and the arrival stand stay hidden.
+     * Show still works anywhere.
      */
     ground_ops_ui_set_aircraft_eligible(ground_ops_eligible);
     ground_ops_ui_set_legacy_visibility(ground_ops_eligible &&
-        (bp_started || acf_on_gnd_stopped(NULL)));
+        (bp_started || (stopped && start_gate_open)));
     main_intf_update_automation();
 
     if (!bp_interface_mode_uses_legacy_magic_squares(
